@@ -1,5 +1,7 @@
 # BreachLens Architecture Diagram
 
+This is the required root-level architecture diagram for the submission. I kept the diagram focused on the real data path: React UI, FastAPI, the evidence-gated agent, Splunk, optional MCP, and the local model.
+
 ```mermaid
 flowchart LR
   Analyst["SOC analyst"] --> UI["BreachLens React console"]
@@ -7,13 +9,13 @@ flowchart LR
   API --> Agent["Evidence-gated SOC agent"]
   Agent --> Mode{"Runtime mode"}
   Mode --> MCP["Splunk MCP Server"]
-  Mode --> REST["Splunk REST fallback"]
-  Mode --> Sample["Local sample-data client"]
+  Mode --> REST["Splunk REST live-data mode"]
+  Mode --> Sample["Local sample-data mode"]
   MCP --> Splunk["Local Splunk Enterprise"]
   REST --> Splunk
-  Sample --> Data
+  Sample --> Data["Synthetic breach logs"]
   Splunk --> App["breachlens_splunk app"]
-  App --> Data["Synthetic breach logs"]
+  App --> Data
   Agent --> LLM["Ollama NiNa or OpenAI-compatible model"]
   Agent --> Gate["Evidence reference gate"]
   Gate --> API
@@ -26,17 +28,23 @@ flowchart LR
 
 ## Data Flow
 
-1. Synthetic authentication, EDR, cloud, proxy, and alert events are indexed into the `breachlens` Splunk index.
-2. The analyst selects an alert in the React console and starts an investigation.
-3. The FastAPI backend asks the SOC agent to create an investigation plan.
-4. The agent uses Splunk MCP tools such as `splunk_run_query`, `splunk_get_indexes`, `splunk_get_metadata`, and `splunk_get_knowledge_objects`.
-5. Ollama/NiNa or another OpenAI-compatible model can generate the analyst note, but output is accepted only when claims reference evidence IDs returned from Splunk queries.
-6. The UI renders the incident timeline, MITRE ATT&CK mapping, evidence, SPL transcript, and detection drafts.
+1. Splunk indexes synthetic auth, EDR, cloud, proxy, and alert events into the `breachlens` index.
+2. I select an alert in the React console and start an investigation.
+3. FastAPI sends the request to the SOC agent.
+4. The agent gathers Splunk context through either REST or Splunk MCP Server.
+5. In MCP mode, the tool calls I want visible are `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_knowledge_objects`, and `splunk_run_query`.
+6. NiNa/Ollama can write the analyst note, but the backend accepts it only when it cites valid evidence IDs.
+7. The UI renders the proof strip, timeline, MITRE mapping, evidence drawer, SPL transcript, response actions, exports, and detections.
 
-## Live Demo Proof Signals
+## Proof Signals
 
-- Runtime mode must show `mcp`.
-- Splunk client must show `splunk_mcp`.
-- AI runtime should show NiNa/Ollama and link to the Hugging Face model.
-- MCP proof should show all four required tool calls: `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_knowledge_objects`, and `splunk_run_query`.
-- Evidence cards should include source-event Splunk links when running against live Splunk.
+For normal local validation, the UI should show `rest / splunk_rest` and Splunk-backed evidence links.
+
+For the final MCP recording, the UI should show:
+
+- `Splunk MCP live`
+- `mcp`
+- `splunk_mcp`
+- `NiNa`
+- `4/4 observed`
+- Splunk source-event links on evidence cards

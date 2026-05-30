@@ -1,25 +1,44 @@
 # Demo Script Under 3 Minutes
 
+This is the version I want to record. It keeps the story direct and leaves room to show the product instead of narrating every button like a training video from 2009.
+
 ## 0:00 - 0:20 Problem
 
-"Security teams waste time jumping between alerts, SPL searches, and screenshots. BreachLens turns a suspicious alert into an evidence-backed investigation package using Splunk MCP Server."
+"I built BreachLens because I wanted an AI-assisted SOC workflow that still behaves like security tooling. It should speed up triage, but every claim needs to trace back to Splunk evidence."
 
-## 0:20 - 0:45 Alert Queue
+## 0:20 - 0:45 Proof Strip And Alert
 
-Show the React console and select `BLS-2026-001`. Keep the first-viewport proof strip visible and call out `Splunk MCP live`, `mcp`, `splunk_mcp`, `NiNa`, and the pending tool/evidence counters. Then call out the chain: password spraying, impossible travel, cloud token abuse, endpoint execution, and exfil-like traffic.
+Show the first screen. Call out the proof strip: runtime mode, Splunk client, NiNa/Ollama, MCP tool count, and evidence count.
 
-## 0:45 - 1:35 MCP Investigation
+Select `BLS-2026-001` and summarize the chain: password spraying, impossible travel, cloud token activity, endpoint execution, and outbound transfer.
 
-Click investigate. Show the proof strip update to `4/4 observed` and populated evidence items, then show the SPL transcript proving the agent used Splunk-backed pivots. Mention that MCP tools provide the controlled interface: run queries, inspect indexes, metadata, and knowledge objects.
+## 0:45 - 1:35 Investigation
+
+Click Investigate.
+
+In MCP mode, show the proof strip updating to `4/4 observed`. Then open the SPL tab and show:
+
+- `splunk_get_indexes`
+- `splunk_get_metadata`
+- `splunk_get_knowledge_objects`
+- `splunk_run_query`
+
+Say: "The point is not just that the app found results. The point is that the tool path is visible."
 
 ## 1:35 - 2:15 Evidence-Gated Findings
 
-Walk the timeline. Each phase has evidence IDs, so the AI cannot invent a shell, credential, or impact claim. The likely path is account takeover to cloud abuse to endpoint execution to outbound data movement.
+Walk the timeline. Click one or two evidence IDs.
 
-## 2:15 - 2:45 Detections, Ledger, and Response
+Say: "The AI note is allowed to summarize, but it has to cite evidence IDs that came back from Splunk. If it does not, the backend falls back instead of trusting it."
 
-Generate detections. Show SPL and Sigma-style output. Open an evidence chip to show raw Splunk fields, then export the Evidence Ledger or incident report. Call out immediate response: disable user, revoke sessions, rotate cloud keys, isolate host, block source IP, and preserve evidence.
+Open the evidence drawer and show raw fields plus the Splunk source-event link.
+
+## 2:15 - 2:45 Detections, Ledger, And Response
+
+Generate detections. Show the SPL/Sigma-style draft.
+
+Export the evidence ledger or report. Mention the response actions: disable the user, revoke sessions, rotate cloud keys, isolate the host, block the source IP, and preserve evidence.
 
 ## 2:45 - 3:00 Close
 
-"This is not a chatbot pasted onto logs. It is a Splunk-native investigation workflow that produces reproducible evidence, response guidance, and reusable detections."
+"This is not chat pasted onto logs. BreachLens is a Splunk-backed investigation workflow with AI kept inside an evidence gate."

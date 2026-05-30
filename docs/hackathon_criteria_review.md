@@ -1,34 +1,36 @@
 # Hackathon Criteria Review
 
-Source criteria: [Splunk Agentic Ops Hackathon](https://splunk.devpost.com/) and [official rules](https://splunk.devpost.com/rules), fetched May 29, 2026.
+These are my own submission notes. I am keeping the weak spots visible because they matter for the final recording.
+
+Source criteria: [Splunk Agentic Ops Hackathon](https://splunk.devpost.com/) and official rules, checked during the build.
 
 ## Submission Fit
 
-| Requirement | Status | Evidence | Risk / action |
+| Requirement | My status | Evidence | What I still need to do |
 | --- | --- | --- | --- |
-| Security track fit | Pass | BreachLens investigates threats, produces evidence, detections, MITRE mapping, and response actions. | State "Security track" in Devpost text and video opening. |
-| Uses Splunk data | Pass | Splunk app, index, sourcetypes, saved searches, dashboard, MCP/REST/sample clients. | Final demo should run against Splunk, not sample mode. |
-| Uses AI / agentic capability | Pass with demo proof needed | Agent workflow, MCP tool orchestration, evidence gating, and AI analyst note are wired into API/UI/report output. | For strongest scoring, record with an Ollama or OpenAI-compatible provider configured so the analyst note is live model output rather than deterministic fallback. |
-| Required APIs/SDKs/tools | Risk | `McpSplunkClient` calls Splunk MCP Server tools; live validation now expects `splunk_mcp`. | Capture video and screenshot with `mcp` / `splunk_mcp` badges visible. |
-| Public open-source repo | Pending | Local repo has source files and MIT license. | Publish repo and ensure license appears in repository metadata. |
-| README, dependencies, configs, datasets | Pass | `README.md`, `.env.example`, `requirements.txt`, `package.json`, `sample_data/`. | Add exact MCP validation output to README after final live run. |
-| Architecture diagram at repo root | Pass | `architecture_diagram.md`. | Optional: export Mermaid to PNG for Devpost readability. |
-| Demo video under 3 minutes | Pending | `docs/demo_script.md` exists. | Record public video with MCP badges and SPL transcript. |
-| No secrets / third-party rights | Pass | `.env` ignored; `.env.example` contains blanks. | Re-scan before publishing. |
+| Security track fit | Good | BreachLens investigates identity, cloud, endpoint, and proxy telemetry, then produces evidence, detections, MITRE mapping, and response actions. | Say "Security track" clearly in the Devpost text and video. |
+| Uses Splunk data | Good | Local Splunk app, `breachlens` index, sourcetypes, saved searches, dashboard, REST client, MCP client, and live Splunk evidence links. | Final recording should not use `sample` mode. |
+| Uses AI / agentic capability | Good | The agent runs pivots, builds an evidence chain, and uses NiNa/Ollama for a constrained analyst note. | Record with NiNa visible, not deterministic fallback. |
+| Required tools/APIs | Needs final proof | `McpSplunkClient` is implemented and the UI/test expect `splunk_mcp`. | Install/configure Splunk MCP Server locally and capture `mcp / splunk_mcp`. |
+| Public repo | Good | Source, docs, sample data, architecture diagram, and license are pushed. | Keep secrets out before every push. |
+| README/configs/data | Good | README, `.env.example`, `requirements.txt`, `package.json`, Splunk app, and sample data are included. | Add final MCP validation output after recording if useful. |
+| Architecture diagram | Good | `architecture_diagram.md` is at the repo root. | Optional: export a PNG for Devpost readability. |
+| Demo video | Pending | Script exists. | Record a public video under 3 minutes. |
+| No secrets | Good | `.env` is ignored and quick scans have not found committed tokens. | Re-scan before final submission. |
 
 ## Judging Criteria
 
-| Criterion | Current score | Why | Highest-impact lift |
-| --- | ---: | --- | --- |
-| Technological Implementation | 8/10 | Working backend, frontend, Splunk app, tests, evidence validation, AI analyst note, reports, exports. | Prove MCP end-to-end and add one command/script that validates Splunk indexing plus MCP tool calls. |
-| Design | 8/10 | Polished SOC console, clear timeline, metrics, proof strip, evidence drawer, exports. | Record the first viewport with the proof strip visible before and after investigation. |
-| Potential Impact | 8/10 | Triage compression, investigation package, detections, response guidance. | Support the "20m -> <2m" claim with a before/after workflow in README/video. |
-| Quality of the Idea | 7/10 | Strong SOC copilot idea with evidence gating; category is competitive. | Emphasize evidence-gated AI as the differentiator from generic log chatbots. |
-| Best Use of Splunk MCP Server bonus | 7/10 | MCP client exists and transcripts expose MCP-style tool calls. | Record final demo in MCP mode and include live validation output showing `splunk_mcp`. |
+| Criterion | My read | Why |
+| --- | ---: | --- |
+| Technological implementation | 8/10 | Backend, frontend, Splunk app, live REST data, MCP client, evidence validation, exports, detections, and tests are working. Full MCP validation is the remaining proof point. |
+| Design | 8/10 | The UI is an actual SOC workflow with a proof strip, timeline, evidence drawer, SPL transcript, and detections. |
+| Potential impact | 8/10 | It turns a multi-pivot investigation into an evidence package an analyst can review and export. |
+| Quality of idea | 7/10 | SOC copilots are a crowded idea, but the evidence gate is the part that makes this more serious. |
+| Splunk MCP bonus | 7/10 until final proof | The client and UI proof path exist. The recording needs live `splunk_mcp` mode. |
 
-## Final Demo Proof Checklist
+## Final Proof I Need
 
-Run with Splunk MCP mode before recording:
+Before recording:
 
 ```powershell
 cd frontend
@@ -38,7 +40,7 @@ $env:EXPECTED_AI_MODEL_LABEL = "NiNa"
 npm run test:live
 ```
 
-The output should include the first-viewport proof strip, exported ledger/report filenames, and MCP proof tool names:
+The output and video should show:
 
 ```text
 Splunk MCP live

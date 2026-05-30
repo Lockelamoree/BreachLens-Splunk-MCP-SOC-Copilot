@@ -1,4 +1,6 @@
-# BreachLens Devpost Submission Brief
+# BreachLens Devpost Draft
+
+This is the submission text I am using as a base for Devpost. I am keeping it plain because I want the project to sound like something I actually built and can defend, not a pile of buzzwords held together by screenshots.
 
 ## Project Name
 
@@ -6,7 +8,7 @@ BreachLens - Splunk MCP SOC Copilot
 
 ## Tagline
 
-Evidence-gated AI investigation for Splunk: turn a suspicious alert into a reproducible SOC package with MCP tool proof, timeline, MITRE mapping, response actions, exports, and detection drafts.
+An evidence-gated SOC copilot for Splunk that turns one suspicious alert into a timeline, evidence ledger, report, response plan, and detection drafts.
 
 ## Track
 
@@ -18,56 +20,60 @@ Best Use of Splunk MCP Server
 
 ## Short Description
 
-BreachLens is a Splunk-native SOC copilot that investigates a synthetic identity-to-cloud-to-endpoint breach. The backend uses Splunk MCP Server as the controlled tool layer for index discovery, metadata review, knowledge object review, and SPL searches. The UI turns those results into a timeline, evidence drawer, MITRE ATT&CK mapping, response plan, evidence ledger, Markdown incident report, and detection drafts.
+I built BreachLens to answer a practical SOC question: can an AI-assisted workflow speed up triage without making unsupported claims?
 
-The key idea is evidence-gated AI: model output is allowed to summarize and prioritize, but claims must reference evidence IDs returned from Splunk-backed searches. If the model is unavailable or returns unsupported output, BreachLens falls back to deterministic reasoning instead of inventing facts. Nothing says "incident response" like refusing to hallucinate a shell that never existed.
+The app investigates a synthetic identity-to-cloud-to-endpoint breach. It pulls alert context and related telemetry from Splunk, records the tool calls and SPL pivots, assigns stable evidence IDs, and builds a timeline, MITRE ATT&CK mapping, response plan, evidence drawer, ledger export, Markdown incident report, and detection drafts.
 
-## What The Demo Must Show
+The important part is the evidence gate. The AI analyst note can summarize and prioritize, but it has to cite evidence IDs that actually came back from Splunk. If the model gives unsupported IDs or an invalid response, the backend falls back instead of trusting it. I would rather have a boring fallback than a confident hallucination in an incident report.
 
-- First viewport proof strip showing `Splunk MCP live`, `mcp`, `splunk_mcp`, `NiNa`, `4/4 observed`, and populated evidence items.
-- Live Ollama model label for NiNa and Hugging Face link: https://huggingface.co/LockeLamora2077/NiNa
-- SPL transcript entries for:
+## What I Want The Demo To Show
+
+- The first-viewport proof strip.
+- Live Splunk data in normal `rest / splunk_rest` mode.
+- Final MCP proof in `mcp / splunk_mcp` mode.
+- NiNa running through local Ollama, with the Hugging Face model link visible.
+- MCP transcript entries for:
   - `splunk_get_indexes`
   - `splunk_get_metadata`
   - `splunk_get_knowledge_objects`
   - `splunk_run_query`
 - Evidence drawer with raw Splunk fields and source-event Splunk links.
-- Exported evidence ledger and Markdown incident report.
-- Generated detection drafts with SPL and Sigma-style content.
+- Evidence ledger and Markdown incident report exports.
+- Detection drafts with SPL and Sigma-style output.
 
-## How It Uses Splunk
+## How I Use Splunk
 
 - `apps/breachlens_splunk/` defines the Splunk app, `breachlens` index, sourcetypes, inputs, saved searches, macros, and dashboard.
-- `sample_data/` contains synthetic auth, cloud, EDR, proxy, and alert JSONL events.
-- The backend supports three clients:
-  - `rest`: local Splunk live-data mode for ordinary demo validation.
-  - `mcp`: Splunk MCP Server tool calls for the final hackathon demo and bonus proof.
-  - `sample`: local sample-data development mode.
-- The investigation transcript records every Splunk tool call and SPL query so judges can verify the data path.
+- `sample_data/` contains synthetic auth, cloud, EDR, proxy, and alert events.
+- `rest` mode uses the local Splunk Enterprise container and real indexed events.
+- `mcp` mode uses Splunk MCP Server for the final bonus proof.
+- `sample` mode exists only so I can develop the UI without Splunk running.
+- The SPL transcript is visible in the UI so the data path is auditable.
 
-## How AI Is Integrated
+## How I Use AI
 
-- NiNa runs through local Ollama with `OLLAMA_MODEL=hf.co/LockeLamora2077/NiNa:latest`.
-- The UI displays the active provider and model link in the first viewport.
-- The backend asks the model for structured JSON only: `status`, `narrative`, and `evidence_ids`.
-- The model is constrained to statuses: `confirmed_compromise`, `partial_compromise`, or `needs_review`.
-- The backend rejects unsupported evidence IDs and falls back to deterministic output if the model response is invalid.
+- NiNa runs locally through Ollama with `OLLAMA_MODEL=hf.co/LockeLamora2077/NiNa:latest`.
+- The UI shows the active provider and model link.
+- The backend asks for structured JSON only: `status`, `narrative`, and `evidence_ids`.
+- The allowed statuses are `confirmed_compromise`, `partial_compromise`, and `needs_review`.
+- The backend checks the returned evidence IDs before accepting the analyst note.
 
 ## Architecture And Data Flow
 
-See the required root-level diagram: [architecture_diagram.md](../architecture_diagram.md).
+The required root-level architecture diagram is here: [architecture_diagram.md](../architecture_diagram.md).
 
 High-level flow:
 
 1. Splunk indexes the synthetic breach telemetry.
 2. The React console sends an alert investigation request to FastAPI.
-3. The evidence-gated SOC agent uses Splunk MCP tools to gather context and run pivots.
-4. The optional Ollama/NiNa analyst note summarizes only supplied evidence.
-5. The UI renders the proof strip, timeline, MITRE mapping, response plan, evidence drawer, SPL transcript, and exports.
+3. The backend runs the evidence-gated SOC agent.
+4. The agent gathers context through Splunk REST or Splunk MCP Server.
+5. NiNa/Ollama can produce the analyst note, but only against supplied evidence.
+6. The UI renders the proof strip, timeline, evidence drawer, MITRE mapping, response plan, SPL transcript, exports, and detections.
 
 ## Local Demo Commands
 
-Start Splunk and use live local data:
+Start Splunk:
 
 ```powershell
 Copy-Item .env.example .env
@@ -75,7 +81,7 @@ Copy-Item .env.example .env
 docker compose up -d splunk
 ```
 
-Run backend:
+Run the backend:
 
 ```powershell
 cd backend
@@ -85,7 +91,7 @@ python -m venv .venv
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8080
 ```
 
-Run frontend:
+Run the frontend:
 
 ```powershell
 cd frontend
@@ -93,7 +99,7 @@ npm install --ignore-scripts
 npm run dev
 ```
 
-Validate live Splunk data through the backend:
+Check that local Splunk has live data:
 
 ```powershell
 cd backend
@@ -107,7 +113,7 @@ print(client.run_query("search index=breachlens | stats count by sourcetype", ea
 '@ | .\.venv\Scripts\python.exe -
 ```
 
-Validate final live MCP proof:
+Validate final MCP proof:
 
 ```powershell
 cd frontend
@@ -119,21 +125,21 @@ npm run test:live
 
 ## Judging Criteria Mapping
 
-| Criterion | BreachLens evidence |
+| Criterion | How I am addressing it |
 | --- | --- |
-| Technological implementation | FastAPI backend, React/Vite frontend, Splunk app, MCP/REST/sample clients, evidence validation, reports, detections, backend tests, Playwright tests. |
-| Design | First-viewport proof strip, SOC alert queue, impact meter, incident timeline, evidence drawer, SPL transcript, detection workflow, clean Arasaka-inspired visual system. |
-| Potential impact | Compresses multi-pivot SOC triage into an evidence-backed incident package with immediate response guidance and reusable detections. |
-| Quality of idea | Evidence-gated AI prevents unsupported claims and keeps every timeline/response/report item tied to Splunk evidence IDs. |
-| Splunk MCP bonus | Live `splunk_mcp` mode and transcript proof for index, metadata, knowledge object, and SPL query tools. |
+| Technological implementation | FastAPI backend, React frontend, Splunk app, REST/MCP/sample clients, evidence validation, exports, detection generation, backend tests, and Playwright tests. |
+| Design | A SOC console built around the investigation workflow: proof strip, alert queue, impact meter, timeline, evidence drawer, SPL transcript, and detections. |
+| Potential impact | The app compresses a multi-pivot investigation into a reusable evidence package with response guidance. |
+| Quality of idea | The differentiator is evidence-gated AI, not just chat over logs. |
+| Splunk MCP bonus | Final demo mode uses `splunk_mcp` and shows all required MCP tool calls in the transcript. |
 
 ## Recording Checklist
 
 - Record in `BREACHLENS_MODE=mcp`, not `sample`.
-- Keep the proof strip visible before and after clicking Investigate.
-- Show the strip updating to `4/4 observed`.
-- Click the SPL tab and show all four MCP tool calls.
-- Open one evidence item and click/show the Splunk source-event link.
+- Show the proof strip before and after clicking Investigate.
+- Show it updating to `4/4 observed`.
+- Open the SPL tab and show all four MCP tool calls.
+- Open one evidence item and show the Splunk source-event link.
 - Export the ledger and report.
 - Generate detections.
 - Keep the video under 3 minutes.
