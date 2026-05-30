@@ -2,7 +2,7 @@
 
 I built BreachLens for the Splunk Agentic Ops Hackathon Security track. The idea is simple: I do not want an AI chatbot guessing its way through incident response. I want a SOC workflow where every claim has a Splunk-backed evidence ID behind it.
 
-BreachLens takes a suspicious alert, pivots through Splunk data, builds an incident timeline, maps the activity to MITRE ATT&CK, suggests response actions, and exports both an evidence ledger and a Markdown incident report. The AI piece is useful, but it is deliberately boxed in: it can summarize the evidence, but it cannot invent facts without references.
+BreachLens takes a suspicious alert, pivots through Splunk data, builds an incident timeline, maps the activity to MITRE ATT&CK, suggests response actions, and exports both an evidence ledger and a Markdown incident report. The AI piece is useful, but it is deliberately boxed in: it can summarize the evidence, and the backend only accepts notes that cite real evidence IDs and concrete fields.
 
 ![BreachLens investigation console](docs/breachlens-ui-real-splunk.png)
 
@@ -27,7 +27,7 @@ The workflow is intentionally evidence-first:
 2. The agent records the tool calls and SPL pivots it used.
 3. Evidence items get stable IDs like `EV-001`.
 4. Timeline events, MITRE mappings, response actions, reports, and AI notes cite those IDs.
-5. If an AI response does not cite real evidence IDs, the backend falls back instead of trusting it.
+5. If an AI response does not cite real evidence IDs and concrete evidence fields, the backend falls back instead of trusting it.
 
 That is the whole point: useful AI, but with guardrails an analyst can audit.
 
@@ -39,6 +39,7 @@ That is the whole point: useful AI, but with guardrails an analyst can audit.
 - **What judges should look for:** the first-viewport proof strip, SPL transcript, evidence drawer, Splunk source links, ledger/report exports, and generated detections.
 
 For the Devpost write-up I am using, see [docs/devpost_submission.md](docs/devpost_submission.md).
+For my current live-environment status, see [docs/live_validation.md](docs/live_validation.md).
 
 ## Live Proof Modes
 
@@ -69,13 +70,15 @@ splunk_get_knowledge_objects
 splunk_run_query
 ```
 
+Tool names alone are not enough for MCP proof. The SPL transcript also records `transport`, and the UI only counts those four calls as MCP proof when the backend is actually running `mcp / splunk_mcp`.
+
 ## How Splunk And AI Fit Together
 
 1. `apps/breachlens_splunk/` defines the Splunk app, index, sourcetypes, inputs, saved searches, macros, and dashboard.
 2. Splunk indexes synthetic auth, cloud, endpoint, proxy, and alert events from `sample_data/`.
 3. The backend runs the investigation through REST or MCP, depending on `BREACHLENS_MODE`.
 4. In MCP mode, the agent uses Splunk MCP Server tools for index discovery, metadata, knowledge objects, and SPL searches.
-5. NiNa/Ollama can generate the analyst note, but the backend only accepts structured JSON with supported statuses and valid evidence IDs.
+5. NiNa/Ollama can generate the analyst note, but the backend only accepts structured JSON with supported statuses, valid evidence IDs, and claim-level field references such as `EV-001.user`.
 6. The UI shows the result as a SOC workflow, not a chat transcript.
 
 ## Repository Layout
@@ -188,6 +191,17 @@ npm run test:live
 
 This captures `docs/breachlens-ui-real-splunk.png`, downloads the evidence ledger and incident report, and checks that the proof strip and SPL transcript show the MCP signals I need for the recording.
 
+## AI Evaluation
+
+I added a small evaluator so the AI behavior is reproducible instead of being judged from one screenshot:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe scripts\evaluate_ai.py --alerts 3
+```
+
+The current local run is saved in [docs/ai_evaluation.md](docs/ai_evaluation.md). In that run, NiNa returned accepted JSON for all three alerts, with valid evidence IDs and field-backed claims, while the deterministic path stayed clearly labeled as fallback.
+
 ## API
 
 - `GET /api/alerts`
@@ -236,5 +250,8 @@ npm run test:e2e
 
 - No secrets are committed. `.env` is ignored.
 - MCP tokens must be generated locally in the Splunk MCP Server app.
-- The AI note is evidence-gated and constrained to known evidence IDs.
+- The AI note is evidence-gated and constrained to known evidence IDs plus concrete evidence field references.
 - The backend rejects obvious prompt-injection objectives such as requests to ignore instructions or reveal system prompts.
+- The included `rest` setup is for local demo use. It can use basic auth and `SPLUNK_VERIFY_TLS=false` because the Splunk management port is bound to localhost in Docker.
+- For production, I would use token auth, TLS verification, a least-privilege Splunk role, locked-down CORS, network allowlists, and secret storage outside `.env`.
+- The MCP token, Splunk token, and any model API key should never be committed or shown in the demo recording.

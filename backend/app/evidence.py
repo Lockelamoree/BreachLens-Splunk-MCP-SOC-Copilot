@@ -47,6 +47,7 @@ def validate_references(known_ids: set[str], references: Iterable[str], context:
 
 def validate_investigation(investigation: Investigation) -> None:
     known = evidence_id_set(investigation.evidence)
+    evidence_by_id = {item.id: item for item in investigation.evidence}
     if not known:
         raise EvidenceValidationError("Investigation has no evidence.")
 
@@ -69,6 +70,27 @@ def validate_investigation(investigation: Investigation) -> None:
         if not investigation.analyst_note.evidence_ids:
             raise EvidenceValidationError("AI analyst note has no evidence references.")
         validate_references(known, investigation.analyst_note.evidence_ids, "AI analyst note")
+        if not investigation.analyst_note.claims:
+            raise EvidenceValidationError("AI analyst note has no claim field references.")
+        for index, claim in enumerate(investigation.analyst_note.claims, start=1):
+            claim_ids = [str(item) for item in claim.get("evidence_ids", [])]
+            if not claim_ids:
+                raise EvidenceValidationError(f"AI analyst note claim {index} has no evidence references.")
+            validate_references(known, claim_ids, f"AI analyst note claim {index}")
+            field_refs = [str(item) for item in claim.get("field_refs", [])]
+            if not field_refs:
+                raise EvidenceValidationError(f"AI analyst note claim {index} has no field references.")
+            for field_ref in field_refs:
+                if "." not in field_ref:
+                    raise EvidenceValidationError(
+                        f"AI analyst note claim {index} has invalid field reference: {field_ref}"
+                    )
+                evidence_id, field_name = field_ref.split(".", 1)
+                evidence = evidence_by_id.get(evidence_id)
+                if not evidence or field_name not in {"query_id", "time", "source", "title", "summary"} | set(evidence.fields):
+                    raise EvidenceValidationError(
+                        f"AI analyst note claim {index} has invalid field reference: {field_ref}"
+                    )
 
     for token in ("might", "possibly", "appears without evidence"):
         if token in investigation.summary.lower():

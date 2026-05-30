@@ -16,20 +16,20 @@ Select `BLS-2026-001` and summarize the chain: password spraying, impossible tra
 
 Click Investigate.
 
-In MCP mode, show the proof strip updating to `4/4 observed`. Then open the SPL tab and show:
+In MCP mode, show the proof strip updating to `4/4 observed`. Then open the SPL tab and show the tool names and `transport=mcp`:
 
 - `splunk_get_indexes`
 - `splunk_get_metadata`
 - `splunk_get_knowledge_objects`
 - `splunk_run_query`
 
-Say: "The point is not just that the app found results. The point is that the tool path is visible."
+Say: "The point is not just that the app found results. The point is that the tool path is visible, and REST is not being counted as MCP."
 
 ## 1:35 - 2:15 Evidence-Gated Findings
 
 Walk the timeline. Click one or two evidence IDs.
 
-Say: "The AI note is allowed to summarize, but it has to cite evidence IDs that came back from Splunk. If it does not, the backend falls back instead of trusting it."
+Say: "The AI note is allowed to summarize, but it has to cite evidence IDs and concrete fields that came back from Splunk. If it does not, the backend falls back instead of trusting it."
 
 Open the evidence drawer and show raw fields plus the Splunk source-event link.
 

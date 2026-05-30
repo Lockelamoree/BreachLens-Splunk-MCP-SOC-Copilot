@@ -30,6 +30,7 @@ class LedgerClaim:
 
 def build_evidence_ledger(investigation: Investigation) -> dict[str, Any]:
     evidence_by_id = {item.id: item for item in investigation.evidence}
+    transcript_by_id = {item.query_id: item for item in investigation.spl_transcript}
     claims: list[LedgerClaim] = []
 
     for index, event in enumerate(investigation.timeline, start=1):
@@ -79,9 +80,29 @@ def build_evidence_ledger(investigation: Investigation) -> dict[str, Any]:
                 confidence=investigation.confidence,
             )
         )
+        for index, claim in enumerate(investigation.analyst_note.claims, start=1):
+            evidence_ids = [str(item) for item in claim.get("evidence_ids", []) if str(item) in evidence_by_id]
+            if not evidence_ids:
+                continue
+            claims.append(
+                LedgerClaim(
+                    claim_id=f"CL-AI-CHECK-{index:02d}",
+                    claim_type="ai_claim_check",
+                    claim=str(claim.get("claim", "")),
+                    evidence_ids=evidence_ids,
+                    spl_query_ids=_query_ids(evidence_ids, evidence_by_id),
+                    confidence=str(claim.get("confidence", investigation.confidence)),
+                )
+            )
 
     evidence_hashes = {
-        item.id: sha256(json.dumps(item.fields, sort_keys=True, default=str).encode("utf-8")).hexdigest()
+        item.id: sha256(
+            json.dumps(
+                _evidence_hash_payload(item, transcript_by_id.get(item.query_id)),
+                sort_keys=True,
+                default=str,
+            ).encode("utf-8")
+        ).hexdigest()
         for item in investigation.evidence
     }
 
@@ -134,18 +155,34 @@ def build_incident_report_markdown(investigation: Investigation) -> str:
             else ""
         ),
         "",
-        "## Impact Meter",
-        "",
-        f"- Evidence items: {len(investigation.evidence)}",
-        f"- SPL/tool transcript entries: {len(investigation.spl_transcript)}",
-        f"- ATT&CK mappings: {len(investigation.mitre)}",
-        f"- Response actions: {len(investigation.response_actions)}",
-        f"- Detection drafts available: 3",
-        "- Estimated triage compression: 20 minutes to under 2 minutes for the demo scenario",
-        "",
-        "## Timeline",
-        "",
     ]
+    if investigation.analyst_note and investigation.analyst_note.claims:
+        lines.extend(["### AI Claim Checks", ""])
+        for claim in investigation.analyst_note.claims:
+            claim_evidence_ids = [str(item) for item in claim.get("evidence_ids", [])]
+            field_refs = ", ".join(str(item) for item in claim.get("field_refs", []))
+            lines.append(
+                f"- {claim.get('claim', '')} "
+                f"Evidence: {_evidence_links(claim_evidence_ids, evidence_by_id)}; "
+                f"Fields: {field_refs}"
+            )
+        lines.append("")
+
+    lines.extend(
+        [
+            "## Impact Meter",
+            "",
+            f"- Evidence items: {len(investigation.evidence)}",
+            f"- SPL/tool transcript entries: {len(investigation.spl_transcript)}",
+            f"- ATT&CK mappings: {len(investigation.mitre)}",
+            f"- Response actions: {len(investigation.response_actions)}",
+            f"- Detection drafts available: 3",
+            "- Estimated triage compression: 20 minutes to under 2 minutes for the demo scenario",
+            "",
+            "## Timeline",
+            "",
+        ]
+    )
 
     for event in investigation.timeline:
         lines.extend(
@@ -189,6 +226,8 @@ def build_incident_report_markdown(investigation: Investigation) -> str:
             [
                 f"### {entry.query_id} - {entry.tool}",
                 "",
+                f"Transport: `{entry.transport}`",
+                "",
                 entry.purpose,
                 "",
                 "```spl",
@@ -203,6 +242,13 @@ def build_incident_report_markdown(investigation: Investigation) -> str:
 
 def _query_ids(evidence_ids: list[str], evidence_by_id: dict) -> list[str]:
     return sorted({evidence_by_id[item].query_id for item in evidence_ids if item in evidence_by_id})
+
+
+def _evidence_hash_payload(evidence: Any, transcript: Any | None) -> dict[str, Any]:
+    return {
+        "evidence": evidence.to_dict(),
+        "query": transcript.to_dict() if transcript else None,
+    }
 
 
 def _evidence_links(evidence_ids: list[str], evidence_by_id: dict) -> str:

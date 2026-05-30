@@ -42,7 +42,7 @@ const requiredMcpTools = [
 
   await page.getByRole("button", { name: "SPL" }).click();
   for (const toolName of requiredMcpTools) {
-    await waitForTranscriptTool(page, toolName);
+    await waitForTranscriptTool(page, toolName, expectedMode);
   }
 
   const ledgerDownload = page.waitForEvent("download");
@@ -79,6 +79,8 @@ const requiredMcpTools = [
   process.exit(1);
 });
 
-async function waitForTranscriptTool(page, toolName) {
-  await page.locator(".query-card").filter({ hasText: toolName }).first().waitFor({ timeout: 15000 });
+async function waitForTranscriptTool(page, toolName, expectedTransport) {
+  const card = page.locator(".query-card").filter({ hasText: toolName }).first();
+  await card.waitFor({ timeout: 15000 });
+  await card.locator(".transport-badge").filter({ hasText: expectedTransport }).first().waitFor({ timeout: 15000 });
 }

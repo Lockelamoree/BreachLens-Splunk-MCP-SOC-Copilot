@@ -50,6 +50,7 @@ class QueryTranscript:
     spl: str
     result_count: int
     tool: str = "splunk_run_query"
+    transport: str = "sample"
 
     def to_dict(self) -> JsonDict:
         return asdict(self)
@@ -124,6 +125,7 @@ class AnalystNote:
     status: str
     narrative: str
     evidence_ids: list[str]
+    claims: list[JsonDict] = field(default_factory=list)
 
     def to_dict(self) -> JsonDict:
         return asdict(self)

@@ -584,6 +584,30 @@ h4 {
   line-height: 1.58;
 }
 
+.claim-checks {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.claim-checks article {
+  padding: 11px;
+  background: #0b0b0b;
+  border: 1px solid var(--line);
+  border-left: 3px solid var(--red);
+  border-radius: 3px;
+}
+
+.claim-checks .query-topline {
+  margin-bottom: 6px;
+}
+
+.claim-checks small {
+  color: var(--muted);
+  font-family: "SFMono-Regular", Consolas, monospace;
+  font-size: 11px;
+}
+
 .impact-band {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
@@ -809,6 +833,18 @@ h4 {
 .query-topline a {
   color: var(--muted);
   overflow-wrap: anywhere;
+}
+
+.query-topline .transport-badge {
+  border-left-color: var(--amber);
+}
+
+.query-topline .transport-badge.mcp {
+  border-left-color: var(--ok);
+}
+
+.query-topline .transport-badge.sample {
+  border-left-color: var(--line-strong);
 }
 
 .query-topline a {

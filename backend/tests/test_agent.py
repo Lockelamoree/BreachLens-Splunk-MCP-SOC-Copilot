@@ -27,6 +27,39 @@ class FakeProvider:
             "status": "compromised",
             "narrative": "Evidence supports suspicious authentication and follow-on activity; impact should be reviewed.",
             "evidence_ids": ["EV-001", "EV-002"],
+            "claims": [
+                {
+                    "claim": "The triggering alert is tied to the investigated alert identifier.",
+                    "evidence_ids": ["EV-001"],
+                    "field_refs": ["EV-001.alert_id", "EV-001.user"],
+                    "confidence": "high",
+                },
+                {
+                    "claim": "Authentication evidence supports follow-on account activity.",
+                    "evidence_ids": ["EV-002"],
+                    "field_refs": ["EV-002.user", "EV-002.src_ip"],
+                    "confidence": "medium",
+                },
+            ],
+        }
+
+
+class BadClaimsProvider(FakeProvider):
+    name = "bad_claims_model"
+
+    def complete_json(self, system_prompt: str, payload: dict) -> dict:
+        return {
+            "status": "confirmed_compromise",
+            "narrative": "Evidence supports suspicious authentication.",
+            "evidence_ids": ["EV-001"],
+            "claims": [
+                {
+                    "claim": "This is not tied to a real evidence field.",
+                    "evidence_ids": ["EV-001"],
+                    "field_refs": ["EV-001.not_a_real_field"],
+                    "confidence": "high",
+                }
+            ],
         }
 
 
@@ -55,6 +88,7 @@ class AgentTests(unittest.TestCase):
         self.assertIsNotNone(investigation.analyst_note)
         self.assertEqual(investigation.analyst_note.provider, "deterministic")
         self.assertTrue(investigation.analyst_note.evidence_ids)
+        self.assertTrue(investigation.analyst_note.claims)
         known = {item.id for item in investigation.evidence}
         for event in investigation.timeline:
             self.assertTrue(set(event.evidence_ids).issubset(known))
@@ -66,6 +100,7 @@ class AgentTests(unittest.TestCase):
         self.assertIn("splunk_get_metadata", tools)
         self.assertIn("splunk_get_knowledge_objects", tools)
         self.assertIn("splunk_run_query", tools)
+        self.assertEqual({entry.transport for entry in investigation.spl_transcript}, {"sample"})
 
     def test_evidence_has_splunk_deeplink_when_ui_url_is_configured(self) -> None:
         investigation = run_investigation(
@@ -86,14 +121,26 @@ class AgentTests(unittest.TestCase):
         provider = FakeProvider()
         investigation = run_investigation(self.client, "BLS-2026-001", llm_provider=provider)
         self.assertEqual(investigation.analyst_note.status, "confirmed_compromise")
+        self.assertEqual(investigation.analyst_note.provider, "fake_model")
+        self.assertEqual(investigation.analyst_note.claims[0]["field_refs"], ["EV-001.alert_id", "EV-001.user"])
         self.assertIn("status must be exactly one of", provider.system_prompt)
+        self.assertIn("field_refs must name actual evidence fields", provider.system_prompt)
         self.assertIn("Use cautious language", provider.system_prompt)
         self.assertIn("large outbound transfer", provider.payload["language_rules"][1])
+        self.assertIn("fields", provider.payload["evidence"][0])
         self.assertEqual(provider.payload["allowed_statuses"], [
             "confirmed_compromise",
             "needs_review",
             "partial_compromise",
         ])
+
+    def test_llm_claims_must_reference_real_evidence_fields(self) -> None:
+        investigation = run_investigation(self.client, "BLS-2026-001", llm_provider=BadClaimsProvider())
+        self.assertEqual(investigation.analyst_note.status, "deterministic_fallback")
+        self.assertTrue(investigation.analyst_note.claims)
+        self.assertTrue(
+            any("claims without valid evidence field references" in warning for warning in investigation.warnings)
+        )
 
 
 if __name__ == "__main__":

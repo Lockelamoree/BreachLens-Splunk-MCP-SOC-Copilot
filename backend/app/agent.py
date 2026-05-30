@@ -9,6 +9,7 @@ from .domain import (
     AnalystNote,
     Evidence,
     Investigation,
+    JsonDict,
     MitreMapping,
     QueryTranscript,
     ResponseAction,
@@ -47,7 +48,8 @@ def run_investigation(
         cleaned_objective = alert.recommended_objective
 
     warnings: list[str] = []
-    transcripts = _collect_context_transcripts(client, warnings)
+    transport = _transport_from_client(client.name)
+    transcripts = _collect_context_transcripts(client, warnings, transport)
     evidence: list[Evidence] = []
 
     for spec in build_investigation_queries(alert.to_dict(), index):
@@ -58,6 +60,7 @@ def run_investigation(
                 purpose=spec.purpose,
                 spl=spec.spl,
                 result_count=len(rows),
+                transport=transport,
             )
         )
         for row in rows:
@@ -113,7 +116,9 @@ def _build_analyst_note(
     warnings: list[str],
 ) -> AnalystNote:
     top_evidence = evidence[:24]
-    fallback_ids = [item.id for item in top_evidence[:4]] or [evidence[0].id]
+    fallback_ids = [item.id for item in top_evidence[:4]]
+    if not fallback_ids and evidence:
+        fallback_ids = [evidence[0].id]
     fallback = AnalystNote(
         provider=provider.name,
         status="deterministic_fallback",
@@ -123,6 +128,7 @@ def _build_analyst_note(
             "model-generated analyst note."
         ),
         evidence_ids=fallback_ids,
+        claims=_fallback_claims(top_evidence[:4]),
     )
     if provider.name == "deterministic":
         return fallback
@@ -135,6 +141,7 @@ def _build_analyst_note(
             "Use 'large outbound transfer' unless the evidence explicitly proves data contents were exfiltrated.",
             "Separate confirmed observations from likely interpretation in the narrative.",
             "Do not mention malware, shells, stolen credentials, attribution, or business impact unless present in evidence.",
+            "For each claim, cite the evidence IDs and concrete field_refs that support the sentence.",
             "Keep the narrative to two or three concise SOC-ready sentences.",
         ],
         "alert": alert.to_dict(),
@@ -142,9 +149,12 @@ def _build_analyst_note(
         "evidence": [
             {
                 "id": item.id,
+                "query_id": item.query_id,
+                "time": item.time,
                 "title": item.title,
                 "summary": item.summary,
                 "source": item.source,
+                "fields": _safe_evidence_fields(item.fields),
             }
             for item in top_evidence
         ],
@@ -152,10 +162,13 @@ def _build_analyst_note(
     result = provider.complete_json(
         (
             "You are a careful SOC incident analyst preparing an evidence-gated note. "
-            "Return only a JSON object with keys status, narrative, and evidence_ids. "
+            "Return only a JSON object with keys status, narrative, evidence_ids, and claims. "
             "status must be exactly one of: confirmed_compromise, partial_compromise, needs_review. "
             "Use only the supplied evidence IDs. Do not introduce facts that are not supported "
-            "by the supplied alert, timeline, and evidence. Use cautious language for inferred impact."
+            "by the supplied alert, timeline, and evidence. claims must be a non-empty array of "
+            "objects with claim, evidence_ids, field_refs, and confidence. field_refs must name "
+            "actual evidence fields as EV-001.user or top-level fields such as EV-001.time. "
+            "Use cautious language for inferred impact."
         ),
         payload,
     )
@@ -173,6 +186,9 @@ def _build_analyst_note(
     if not narrative:
         warnings.append("AI analyst note fallback: provider returned an empty narrative.")
         return fallback
+    claims = _validate_ai_claims(result.get("claims"), evidence, warnings)
+    if not claims:
+        return fallback
     status = _normalize_analyst_status(str(result.get("status", "")), warnings)
 
     return AnalystNote(
@@ -180,6 +196,7 @@ def _build_analyst_note(
         status=status,
         narrative=narrative[:1200],
         evidence_ids=cited_ids[:8],
+        claims=claims[:6],
     )
 
 
@@ -202,7 +219,135 @@ def _normalize_analyst_status(status: str, warnings: list[str]) -> str:
     return "needs_review"
 
 
-def _collect_context_transcripts(client: SplunkToolClient, warnings: list[str]) -> list[QueryTranscript]:
+def _validate_ai_claims(raw_claims: Any, evidence: list[Evidence], warnings: list[str]) -> list[JsonDict]:
+    if not isinstance(raw_claims, list) or not raw_claims:
+        warnings.append("AI analyst note fallback: provider returned no claim field references.")
+        return []
+
+    evidence_by_id = {item.id: item for item in evidence}
+    sanitized: list[JsonDict] = []
+    for raw_claim in raw_claims[:8]:
+        if not isinstance(raw_claim, dict):
+            continue
+        claim = str(raw_claim.get("claim", "")).strip()
+        evidence_ids = _string_list(raw_claim.get("evidence_ids"))
+        cited_ids = [item for item in evidence_ids if item in evidence_by_id]
+        raw_refs = _string_list(raw_claim.get("field_refs"))
+        field_refs = [
+            ref
+            for ref in (_normalize_field_ref(ref, evidence_by_id) for ref in raw_refs)
+            if ref and ref.split(".", 1)[0] in cited_ids
+        ]
+        if not claim or not cited_ids or not field_refs:
+            continue
+        sanitized.append(
+            {
+                "claim": claim[:260],
+                "evidence_ids": cited_ids[:5],
+                "field_refs": field_refs[:8],
+                "confidence": _normalize_claim_confidence(raw_claim.get("confidence")),
+            }
+        )
+
+    if not sanitized:
+        warnings.append("AI analyst note fallback: provider returned claims without valid evidence field references.")
+    return sanitized
+
+
+def _string_list(value: Any) -> list[str]:
+    if isinstance(value, list):
+        return [str(item).strip() for item in value if str(item).strip()]
+    if isinstance(value, str) and value.strip():
+        return [value.strip()]
+    return []
+
+
+def _normalize_field_ref(ref: str, evidence_by_id: dict[str, Evidence]) -> str:
+    if "." not in ref:
+        return ""
+    evidence_id, field_name = ref.split(".", 1)
+    evidence_id = evidence_id.strip()
+    field_name = field_name.strip()
+    if evidence_id not in evidence_by_id or not _evidence_has_field(evidence_by_id[evidence_id], field_name):
+        return ""
+    return f"{evidence_id}.{field_name}"
+
+
+def _evidence_has_field(item: Evidence, field_name: str) -> bool:
+    return field_name in {"query_id", "time", "source", "title", "summary"} or field_name in item.fields
+
+
+def _normalize_claim_confidence(value: Any) -> str:
+    cleaned = str(value or "").strip().lower()
+    if cleaned in {"high", "medium", "low"}:
+        return cleaned
+    return "medium"
+
+
+def _fallback_claims(evidence: list[Evidence]) -> list[JsonDict]:
+    claims: list[JsonDict] = []
+    for item in evidence[:4]:
+        field_refs = _default_field_refs(item)
+        claims.append(
+            {
+                "claim": item.summary[:260],
+                "evidence_ids": [item.id],
+                "field_refs": field_refs,
+                "confidence": "medium",
+            }
+        )
+    return claims
+
+
+def _default_field_refs(item: Evidence) -> list[str]:
+    refs = [
+        f"{item.id}.{field_name}"
+        for field_name in (
+            "alert_id",
+            "user",
+            "src_ip",
+            "host",
+            "action",
+            "outcome",
+            "resource",
+            "process",
+            "parent_process",
+            "command_line",
+            "bytes_out",
+            "dest_domain",
+            "severity",
+        )
+        if field_name in item.fields
+    ]
+    return refs[:4] or [f"{item.id}.summary"]
+
+
+def _safe_evidence_fields(fields: JsonDict) -> JsonDict:
+    safe: JsonDict = {}
+    for key in sorted(fields)[:24]:
+        value = fields[key]
+        if isinstance(value, str):
+            safe[key] = value[:500]
+        elif isinstance(value, int | float | bool) or value is None:
+            safe[key] = value
+        else:
+            safe[key] = str(value)[:500]
+    return safe
+
+
+def _transport_from_client(client_name: str) -> str:
+    if client_name == "splunk_mcp":
+        return "mcp"
+    if client_name == "splunk_rest":
+        return "rest"
+    return "sample"
+
+
+def _collect_context_transcripts(
+    client: SplunkToolClient,
+    warnings: list[str],
+    transport: str,
+) -> list[QueryTranscript]:
     transcripts: list[QueryTranscript] = []
     context_tools = (
         ("CTX-indexes", "splunk_get_indexes", "Confirm Splunk index access.", client.get_indexes),
@@ -228,6 +373,7 @@ def _collect_context_transcripts(client: SplunkToolClient, warnings: list[str]) 
                 spl=f"{tool}()",
                 result_count=result_count,
                 tool=tool,
+                transport=transport,
             )
         )
     return transcripts

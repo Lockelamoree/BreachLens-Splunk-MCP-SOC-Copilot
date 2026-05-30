@@ -24,13 +24,13 @@ I built BreachLens to answer a practical SOC question: can an AI-assisted workfl
 
 The app investigates a synthetic identity-to-cloud-to-endpoint breach. It pulls alert context and related telemetry from Splunk, records the tool calls and SPL pivots, assigns stable evidence IDs, and builds a timeline, MITRE ATT&CK mapping, response plan, evidence drawer, ledger export, Markdown incident report, and detection drafts.
 
-The important part is the evidence gate. The AI analyst note can summarize and prioritize, but it has to cite evidence IDs that actually came back from Splunk. If the model gives unsupported IDs or an invalid response, the backend falls back instead of trusting it. I would rather have a boring fallback than a confident hallucination in an incident report.
+The important part is the evidence gate. The AI analyst note can summarize and prioritize, but it has to cite evidence IDs and concrete evidence fields that actually came back from Splunk. If the model gives unsupported IDs, invalid field references, or an invalid response, the backend falls back instead of trusting it. I would rather have a boring fallback than a confident hallucination in an incident report.
 
 ## What I Want The Demo To Show
 
 - The first-viewport proof strip.
 - Live Splunk data in normal `rest / splunk_rest` mode.
-- Final MCP proof in `mcp / splunk_mcp` mode.
+- Final MCP proof in `mcp / splunk_mcp` mode once the Splunk MCP Server app is installed locally.
 - NiNa running through local Ollama, with the Hugging Face model link visible.
 - MCP transcript entries for:
   - `splunk_get_indexes`
@@ -49,14 +49,16 @@ The important part is the evidence gate. The AI analyst note can summarize and p
 - `mcp` mode uses Splunk MCP Server for the final bonus proof.
 - `sample` mode exists only so I can develop the UI without Splunk running.
 - The SPL transcript is visible in the UI so the data path is auditable.
+- Each transcript entry records the transport. REST calls can show the same abstract tool names, but only entries with `transport=mcp` should count as MCP proof.
 
 ## How I Use AI
 
 - NiNa runs locally through Ollama with `OLLAMA_MODEL=hf.co/LockeLamora2077/NiNa:latest`.
 - The UI shows the active provider and model link.
-- The backend asks for structured JSON only: `status`, `narrative`, and `evidence_ids`.
+- The backend asks for structured JSON only: `status`, `narrative`, `evidence_ids`, and `claims`.
 - The allowed statuses are `confirmed_compromise`, `partial_compromise`, and `needs_review`.
-- The backend checks the returned evidence IDs before accepting the analyst note.
+- The backend checks the returned evidence IDs and field references before accepting the analyst note.
+- I can rerun the local evaluation with `cd backend; .\.venv\Scripts\python.exe scripts\evaluate_ai.py --alerts 3`.
 
 ## Architecture And Data Flow
 
@@ -131,7 +133,7 @@ npm run test:live
 | Design | A SOC console built around the investigation workflow: proof strip, alert queue, impact meter, timeline, evidence drawer, SPL transcript, and detections. |
 | Potential impact | The app compresses a multi-pivot investigation into a reusable evidence package with response guidance. |
 | Quality of idea | The differentiator is evidence-gated AI, not just chat over logs. |
-| Splunk MCP bonus | Final demo mode uses `splunk_mcp` and shows all required MCP tool calls in the transcript. |
+| Splunk MCP bonus | Final demo mode must use `splunk_mcp` and show all required MCP tool calls with `transport=mcp` in the transcript. |
 
 ## Recording Checklist
 
@@ -140,6 +142,7 @@ npm run test:live
 - Show it updating to `4/4 observed`.
 - Open the SPL tab and show all four MCP tool calls.
 - Open one evidence item and show the Splunk source-event link.
+- Show the AI claim checks and field references in the analyst note.
 - Export the ledger and report.
 - Generate detections.
 - Keep the video under 3 minutes.

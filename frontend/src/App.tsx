@@ -73,6 +73,14 @@ type QueryTranscript = {
   spl: string;
   result_count: number;
   tool: string;
+  transport: string;
+};
+
+type AnalystClaim = {
+  claim: string;
+  evidence_ids: string[];
+  field_refs: string[];
+  confidence: string;
 };
 
 type AnalystNote = {
@@ -80,6 +88,7 @@ type AnalystNote = {
   status: string;
   narrative: string;
   evidence_ids: string[];
+  claims: AnalystClaim[];
 };
 
 type Investigation = {
@@ -169,7 +178,12 @@ function App() {
   const aiModel = health?.ai_model ?? (aiProvider === "deterministic" ? "deterministic_fallback" : "pending");
   const aiModelUrl = health?.ai_model_url ?? "";
   const observedMcpTools = useMemo(
-    () => new Set(investigation?.spl_transcript.map((entry) => entry.tool) ?? []),
+    () =>
+      new Set(
+        investigation?.spl_transcript
+          .filter((entry) => entry.transport === "mcp")
+          .map((entry) => entry.tool) ?? []
+      ),
     [investigation]
   );
   const isMcpLive = health?.mode === "mcp" && health?.splunk_client === "splunk_mcp";
@@ -450,6 +464,20 @@ function App() {
             </div>
             <p>{investigation.analyst_note?.narrative ?? "No AI analyst note generated."}</p>
             <EvidenceChips ids={investigation.analyst_note?.evidence_ids ?? []} onSelect={setSelectedEvidenceId} />
+            {(investigation.analyst_note?.claims?.length ?? 0) > 0 && (
+              <div className="claim-checks" aria-label="AI claim checks">
+                {investigation.analyst_note?.claims.map((claim, index) => (
+                  <article key={`${claim.claim}-${index}`}>
+                    <div className="query-topline">
+                      <strong>{claim.confidence}</strong>
+                      <small>{claim.field_refs.join(", ")}</small>
+                    </div>
+                    <p>{claim.claim}</p>
+                    <EvidenceChips ids={claim.evidence_ids} onSelect={setSelectedEvidenceId} />
+                  </article>
+                ))}
+              </div>
+            )}
           </section>
 
           <section className="impact-band" aria-label="Impact meter">
@@ -537,7 +565,7 @@ function App() {
           <div className="empty-state">
             <AlertTriangle aria-hidden="true" />
             <h3>Awaiting investigation</h3>
-            <p>Select an alert and run the MCP-backed investigation.</p>
+            <p>Select an alert and run the Splunk-backed investigation.</p>
           </div>
         )}
 
@@ -589,6 +617,7 @@ function App() {
                     <div className="query-topline">
                       <strong>{query.query_id}</strong>
                       <span>{query.tool}</span>
+                      <span className={`transport-badge ${query.transport}`}>transport={query.transport}</span>
                       <small>{query.result_count} rows</small>
                     </div>
                     <p>{query.purpose}</p>
@@ -678,7 +707,7 @@ function ProofStrip({
   return (
     <section className={`proof-strip ${mcpLive ? "live" : splunkLive ? "splunk-live" : "not-live"}`} aria-label="Live MCP proof strip">
       <article className="proof-card proof-card-primary">
-        <span className="proof-kicker">Splunk MCP</span>
+        <span className="proof-kicker">Splunk Runtime</span>
         <strong>{statusLabel}</strong>
         <div className="proof-inline" aria-label="MCP runtime and client">
           <span>{mode}</span>

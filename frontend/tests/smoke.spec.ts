@@ -81,7 +81,21 @@ const investigation = {
     provider: "ollama",
     status: "confirmed_compromise",
     narrative: "Evidence supports suspicious authentication followed by a large outbound transfer.",
-    evidence_ids: ["EV-001", "EV-002"]
+    evidence_ids: ["EV-001", "EV-002"],
+    claims: [
+      {
+        claim: "Suspicious authentication was observed in the cited event.",
+        evidence_ids: ["EV-001"],
+        field_refs: ["EV-001.user", "EV-001.src_ip"],
+        confidence: "high"
+      },
+      {
+        claim: "A large outbound transfer was observed in proxy telemetry.",
+        evidence_ids: ["EV-002"],
+        field_refs: ["EV-002.bytes_out", "EV-002.dest_domain"],
+        confidence: "high"
+      }
+    ]
   },
   spl_transcript: [
     {
@@ -89,28 +103,32 @@ const investigation = {
       purpose: "Confirm Splunk index access.",
       spl: "splunk_get_indexes()",
       result_count: 1,
-      tool: "splunk_get_indexes"
+      tool: "splunk_get_indexes",
+      transport: "mcp"
     },
     {
       query_id: "CTX-metadata",
       purpose: "Inspect indexed sourcetypes and metadata.",
       spl: "splunk_get_metadata()",
       result_count: 5,
-      tool: "splunk_get_metadata"
+      tool: "splunk_get_metadata",
+      transport: "mcp"
     },
     {
       query_id: "CTX-knowledge",
       purpose: "Inspect saved searches and knowledge objects.",
       spl: "splunk_get_knowledge_objects()",
       result_count: 2,
-      tool: "splunk_get_knowledge_objects"
+      tool: "splunk_get_knowledge_objects",
+      transport: "mcp"
     },
     {
       query_id: "Q-identity",
       purpose: "Pivot across authentication activity.",
       spl: "search index=breachlens sourcetype=breachlens:auth",
       result_count: 10,
-      tool: "splunk_run_query"
+      tool: "splunk_run_query",
+      transport: "mcp"
     }
   ],
   warnings: []
@@ -177,6 +195,7 @@ test("analyst can run an investigation and generate detections", async ({ page }
   await expect(proofStrip.getByText("splunk_get_knowledge_objects")).toBeVisible();
   await expect(proofStrip.getByText("splunk_run_query")).toBeVisible();
   await expect(page.getByText("Incident Timeline")).toBeVisible();
+  await expect(page.getByLabel("AI claim checks")).toBeVisible();
   await expect(page.getByText("Impact Meter")).toBeVisible();
   await expect(page.getByText("Password spray targets multiple users")).toBeVisible();
   await expect(page.getByText("T1110.003")).toBeVisible();

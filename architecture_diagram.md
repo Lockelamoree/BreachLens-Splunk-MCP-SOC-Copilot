@@ -17,7 +17,7 @@ flowchart LR
   Splunk --> App["breachlens_splunk app"]
   App --> Data
   Agent --> LLM["Ollama NiNa or OpenAI-compatible model"]
-  Agent --> Gate["Evidence reference gate"]
+  Agent --> Gate["Evidence and field-reference gate"]
   Gate --> API
   API --> UI
 
@@ -33,12 +33,14 @@ flowchart LR
 3. FastAPI sends the request to the SOC agent.
 4. The agent gathers Splunk context through either REST or Splunk MCP Server.
 5. In MCP mode, the tool calls I want visible are `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_knowledge_objects`, and `splunk_run_query`.
-6. NiNa/Ollama can write the analyst note, but the backend accepts it only when it cites valid evidence IDs.
+6. NiNa/Ollama can write the analyst note, but the backend accepts it only when it cites valid evidence IDs and concrete evidence fields.
 7. The UI renders the proof strip, timeline, MITRE mapping, evidence drawer, SPL transcript, response actions, exports, and detections.
 
 ## Proof Signals
 
 For normal local validation, the UI should show `rest / splunk_rest` and Splunk-backed evidence links.
+
+REST transcript entries can include tool-shaped names through the backend abstraction. That is useful for a consistent UI, but it is not MCP proof. For the bonus proof, the transcript must show `transport=mcp`.
 
 For the final MCP recording, the UI should show:
 
