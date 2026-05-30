@@ -84,6 +84,27 @@ One small naming note: BreachLens displays those four logical labels because the
 5. NiNa/Ollama can generate the analyst note, but the backend only accepts structured JSON with supported statuses, valid evidence IDs, and claim-level field references such as `EV-001.user`.
 6. The UI shows the result as a SOC workflow, not a chat transcript.
 
+```mermaid
+flowchart LR
+  Analyst["SOC analyst"] --> UI["BreachLens React console"]
+  UI --> API["FastAPI investigation API"]
+  API --> Agent["Evidence-gated SOC agent"]
+  Agent --> Mode{"Runtime mode"}
+  Mode --> MCP["Splunk MCP Server"]
+  Mode --> REST["Splunk REST"]
+  Mode --> Sample["Sample JSONL"]
+  MCP --> Splunk["Local Splunk Enterprise"]
+  REST --> Splunk
+  Sample --> Data["Synthetic breach telemetry"]
+  Splunk --> Data
+  Agent --> NiNa["NiNa via Ollama"]
+  NiNa --> Gate["Evidence ID + field-reference gate"]
+  Agent --> Gate
+  Gate --> Findings["Timeline, MITRE, response, detections"]
+  Findings --> UI
+  UI --> Exports["Evidence ledger + incident report"]
+```
+
 ## Repository Layout
 
 ```text
