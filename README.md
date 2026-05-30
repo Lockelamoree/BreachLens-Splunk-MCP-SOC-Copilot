@@ -52,7 +52,7 @@ I am keeping the modes explicit because this is security tooling and pretending 
 | `mcp` | `splunk_mcp` | Uses Splunk MCP Server. This is the final hackathon/bonus-prize proof mode. |
 | `sample` | `sample_data` | Uses local JSONL files only. Good for development, not for the final recording. |
 
-In my final recording, I want the proof strip to show:
+In the demo recording, the proof strip should show:
 
 ```text
 Splunk MCP live

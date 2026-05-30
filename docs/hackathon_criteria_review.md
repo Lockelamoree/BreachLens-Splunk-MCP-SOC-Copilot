@@ -1,6 +1,6 @@
 # Hackathon Criteria Review
 
-These are my own submission notes. I am keeping the weak spots visible because they matter for the final recording.
+These are my own submission notes. I am keeping the weak spots visible because they matter for the final submission.
 
 Source criteria: [Splunk Agentic Ops Hackathon](https://splunk.devpost.com/) and official rules, checked during the build.
 
@@ -8,14 +8,14 @@ Source criteria: [Splunk Agentic Ops Hackathon](https://splunk.devpost.com/) and
 
 | Requirement | My status | Evidence | What I still need to do |
 | --- | --- | --- | --- |
-| Security track fit | Good | BreachLens investigates identity, cloud, endpoint, and proxy telemetry, then produces evidence, detections, MITRE mapping, and response actions. | Say "Security track" clearly in the Devpost text and video. |
-| Uses Splunk data | Good | Local Splunk app, `breachlens` index, sourcetypes, saved searches, dashboard, REST client, MCP client, and live Splunk evidence links. | Final recording should not use `sample` mode. |
-| Uses AI / agentic capability | Good | The agent runs pivots, builds an evidence chain, and uses NiNa/Ollama for a constrained analyst note with field-backed claims. | Record with NiNa visible, not deterministic fallback. |
-| Required tools/APIs | Good | `McpSplunkClient` is implemented, Splunk MCP Server 1.2.0 is installed locally, and `docs/mcp_validation.md` shows `mcp / splunk_mcp` with all required tool calls observed. | Show this clearly in the recording. |
+| Security track fit | Good | BreachLens investigates identity, cloud, endpoint, and proxy telemetry, then produces evidence, detections, MITRE mapping, and response actions. | Say "Security track" clearly in the Devpost text. |
+| Uses Splunk data | Good | Local Splunk app, `breachlens` index, sourcetypes, saved searches, dashboard, REST client, MCP client, and live Splunk evidence links. | Keep the demo link visible in Devpost. |
+| Uses AI / agentic capability | Good | The agent runs pivots, builds an evidence chain, and uses NiNa/Ollama for a constrained analyst note with field-backed claims. | Keep NiNa visible in the video link and description. |
+| Required tools/APIs | Good | `McpSplunkClient` is implemented, Splunk MCP Server 1.2.0 is installed locally, and `docs/mcp_validation.md` shows `mcp / splunk_mcp` with all required tool calls observed. | Keep the MCP proof doc linked in the repo. |
 | Public repo | Good | Source, docs, sample data, architecture diagram, and license are pushed. | Keep secrets out before every push. |
-| README/configs/data | Good | README, `.env.example`, `requirements.txt`, `package.json`, Splunk app, sample data, AI evaluation, MCP validation, and security boundaries are included. | Keep secrets out before the final push. |
+| README/configs/data | Good | README, `.env.example`, `requirements.txt`, `package.json`, Splunk app, sample data, AI evaluation, MCP validation, and security boundaries are included. | Keep secrets out before any follow-up push. |
 | Architecture diagram | Good | `architecture_diagram.md` is at the repo root. | Optional: export a PNG for Devpost readability. |
-| Demo video | Pending | Script exists. | Record a public video under 3 minutes. |
+| Demo video | Good | Public demo is linked in README and the Devpost draft: https://youtu.be/FM6DZyjPXbs | Optional: improve the YouTube thumbnail to show `4/4 observed` instead of the pre-investigation state. |
 | No secrets | Good | `.env` is ignored and quick scans have not found committed tokens. | Re-scan before final submission. |
 
 ## Judging Criteria
@@ -34,9 +34,9 @@ Current local evaluation: [docs/ai_evaluation.md](ai_evaluation.md)
 
 NiNa/Ollama accepted all three evaluated alerts in the latest run. "Accepted" means the model returned valid JSON, an allowed status, valid evidence IDs, and claims with real evidence field references. Deterministic rows are intentionally not counted as AI acceptance.
 
-## Final Proof I Need
+## Final Proof To Recheck
 
-Before recording, rerun:
+Before any last-minute rerecording or Devpost edit, rerun:
 
 ```powershell
 cd frontend

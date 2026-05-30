@@ -59,7 +59,7 @@ $env:EXPECTED_AI_MODEL_LABEL = "NiNa"
 npm run test:live
 ```
 
-The final recording should show:
+The demo recording should show:
 
 ```text
 Splunk MCP live
