@@ -6,11 +6,11 @@
 
 ## 0:20 - 0:45 Alert Queue
 
-Show the React console and select `BLS-2026-001`. Call out the chain: password spraying, impossible travel, cloud token abuse, endpoint execution, and exfil-like traffic.
+Show the React console and select `BLS-2026-001`. Keep the first-viewport proof strip visible and call out `Splunk MCP live`, `mcp`, `splunk_mcp`, `NiNa`, and the pending tool/evidence counters. Then call out the chain: password spraying, impossible travel, cloud token abuse, endpoint execution, and exfil-like traffic.
 
 ## 0:45 - 1:35 MCP Investigation
 
-Click investigate. Show the SPL transcript proving the agent used Splunk-backed pivots. Mention that MCP tools provide the controlled interface: run queries, inspect indexes, metadata, and knowledge objects.
+Click investigate. Show the proof strip update to `4/4 observed` and populated evidence items, then show the SPL transcript proving the agent used Splunk-backed pivots. Mention that MCP tools provide the controlled interface: run queries, inspect indexes, metadata, and knowledge objects.
 
 ## 1:35 - 2:15 Evidence-Gated Findings
 

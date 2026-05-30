@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from hashlib import sha1
 from typing import Any
+from urllib.parse import quote
 
 from .domain import (
     Alert,
@@ -15,8 +16,11 @@ from .domain import (
 )
 from .evidence import EvidenceValidationError, validate_investigation, validate_objective
 from .llm import DeterministicProvider, LLMProvider
-from .spl import alert_list_query, build_investigation_queries
+from .spl import alert_list_query, build_investigation_queries, spl_string
 from .splunk_client import SplunkToolClient
+
+
+ALLOWED_ANALYST_STATUSES = {"confirmed_compromise", "partial_compromise", "needs_review"}
 
 
 def get_alerts(client: SplunkToolClient, index: str = "breachlens") -> list[Alert]:
@@ -31,6 +35,7 @@ def run_investigation(
     objective: str | None = None,
     index: str = "breachlens",
     llm_provider: LLMProvider | None = None,
+    splunk_ui_url: str = "",
 ) -> Investigation:
     cleaned_objective = validate_objective(objective or "")
     alerts = get_alerts(client, index)
@@ -56,7 +61,15 @@ def run_investigation(
             )
         )
         for row in rows:
-            evidence.append(_evidence_from_row(len(evidence) + 1, spec.id, row))
+            evidence.append(
+                _evidence_from_row(
+                    len(evidence) + 1,
+                    spec.id,
+                    row,
+                    index=index,
+                    splunk_ui_url=splunk_ui_url,
+                )
+            )
 
     timeline = _build_timeline(alert, evidence)
     mitre = _build_mitre(evidence)
@@ -99,7 +112,7 @@ def _build_analyst_note(
     timeline: list[TimelineEvent],
     warnings: list[str],
 ) -> AnalystNote:
-    top_evidence = evidence[:12]
+    top_evidence = evidence[:24]
     fallback_ids = [item.id for item in top_evidence[:4]] or [evidence[0].id]
     fallback = AnalystNote(
         provider=provider.name,
@@ -116,6 +129,14 @@ def _build_analyst_note(
 
     payload = {
         "objective": objective,
+        "allowed_statuses": sorted(ALLOWED_ANALYST_STATUSES),
+        "language_rules": [
+            "Say evidence supports a finding, not that it is proven, unless the event fields directly prove it.",
+            "Use 'large outbound transfer' unless the evidence explicitly proves data contents were exfiltrated.",
+            "Separate confirmed observations from likely interpretation in the narrative.",
+            "Do not mention malware, shells, stolen credentials, attribution, or business impact unless present in evidence.",
+            "Keep the narrative to two or three concise SOC-ready sentences.",
+        ],
         "alert": alert.to_dict(),
         "timeline": [item.to_dict() for item in timeline],
         "evidence": [
@@ -130,9 +151,11 @@ def _build_analyst_note(
     }
     result = provider.complete_json(
         (
-            "You are a SOC analyst. Return JSON with keys status, narrative, and evidence_ids. "
-            "Use only the provided evidence_ids. Do not introduce facts that are not supported "
-            "by the provided evidence."
+            "You are a careful SOC incident analyst preparing an evidence-gated note. "
+            "Return only a JSON object with keys status, narrative, and evidence_ids. "
+            "status must be exactly one of: confirmed_compromise, partial_compromise, needs_review. "
+            "Use only the supplied evidence IDs. Do not introduce facts that are not supported "
+            "by the supplied alert, timeline, and evidence. Use cautious language for inferred impact."
         ),
         payload,
     )
@@ -150,13 +173,33 @@ def _build_analyst_note(
     if not narrative:
         warnings.append("AI analyst note fallback: provider returned an empty narrative.")
         return fallback
+    status = _normalize_analyst_status(str(result.get("status", "")), warnings)
 
     return AnalystNote(
         provider=provider.name,
-        status=str(result.get("status", "model_generated")),
+        status=status,
         narrative=narrative[:1200],
         evidence_ids=cited_ids[:8],
     )
+
+
+def _normalize_analyst_status(status: str, warnings: list[str]) -> str:
+    cleaned = status.strip().lower().replace("-", "_").replace(" ", "_")
+    aliases = {
+        "confirmed": "confirmed_compromise",
+        "compromised": "confirmed_compromise",
+        "account_taken_over": "confirmed_compromise",
+        "partial": "partial_compromise",
+        "in_progress": "partial_compromise",
+        "incomplete": "needs_review",
+        "review": "needs_review",
+        "needs_more_review": "needs_review",
+    }
+    normalized = aliases.get(cleaned, cleaned)
+    if normalized in ALLOWED_ANALYST_STATUSES:
+        return normalized
+    warnings.append(f"AI analyst note status normalized to needs_review from unsupported value: {status}")
+    return "needs_review"
 
 
 def _collect_context_transcripts(client: SplunkToolClient, warnings: list[str]) -> list[QueryTranscript]:
@@ -205,7 +248,13 @@ def _source_from_query(query_id: str) -> str:
     }.get(query_id, "splunk")
 
 
-def _evidence_from_row(number: int, query_id: str, row: dict[str, Any]) -> Evidence:
+def _evidence_from_row(
+    number: int,
+    query_id: str,
+    row: dict[str, Any],
+    index: str,
+    splunk_ui_url: str,
+) -> Evidence:
     source = str(row.get("sourcetype") or _source_from_query(query_id))
     return Evidence(
         id=f"EV-{number:03d}",
@@ -215,7 +264,18 @@ def _evidence_from_row(number: int, query_id: str, row: dict[str, Any]) -> Evide
         title=_evidence_title(source, row),
         summary=_evidence_summary(source, row),
         fields={key: value for key, value in row.items() if not key.startswith("__")},
+        splunk_url=_build_splunk_evidence_url(splunk_ui_url, index, source, row),
     )
+
+
+def _build_splunk_evidence_url(base_url: str, index: str, source: str, row: dict[str, Any]) -> str:
+    if not base_url:
+        return ""
+    event_key = "event_id" if row.get("event_id") else "alert_id" if row.get("alert_id") else ""
+    event_filter = f" {event_key}={spl_string(row[event_key])}" if event_key else ""
+    search = f"search index={index} sourcetype={spl_string(source)}{event_filter} | table _time *"
+    encoded_search = quote(search, safe="")
+    return f"{base_url.rstrip('/')}/en-US/app/search/search?earliest=-7d&latest=now&q={encoded_search}"
 
 
 def _evidence_title(source: str, row: dict[str, Any]) -> str:

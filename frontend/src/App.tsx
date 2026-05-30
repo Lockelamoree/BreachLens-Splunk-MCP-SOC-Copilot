@@ -6,6 +6,7 @@ import {
   CheckCircle2,
   Clock,
   Download,
+  ExternalLink,
   FileText,
   Network,
   Play,
@@ -40,6 +41,7 @@ type Evidence = {
   title: string;
   summary: string;
   fields: Record<string, string | number | boolean | null>;
+  splunk_url?: string;
 };
 
 type TimelineEvent = {
@@ -110,6 +112,8 @@ type Health = {
   mode: string;
   splunk_client: string;
   splunk_index?: string;
+  splunk_ui_url?: string;
+  splunk_evidence_links_enabled?: boolean;
   ai_provider?: string;
   ai_model?: string;
   ai_model_url?: string;
@@ -117,6 +121,12 @@ type Health = {
 };
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
+const MCP_PROOF_TOOLS = [
+  "splunk_get_indexes",
+  "splunk_get_metadata",
+  "splunk_get_knowledge_objects",
+  "splunk_run_query"
+];
 
 const fallbackAlerts: AlertItem[] = [
   {
@@ -158,6 +168,16 @@ function App() {
   const aiProvider = investigation?.analyst_note?.provider ?? health?.ai_provider ?? "pending";
   const aiModel = health?.ai_model ?? (aiProvider === "deterministic" ? "deterministic_fallback" : "pending");
   const aiModelUrl = health?.ai_model_url ?? "";
+  const observedMcpTools = useMemo(
+    () => new Set(investigation?.spl_transcript.map((entry) => entry.tool) ?? []),
+    [investigation]
+  );
+  const isMcpLive = health?.mode === "mcp" && health?.splunk_client === "splunk_mcp";
+  const liveObservedMcpTools = useMemo(
+    () => (isMcpLive ? observedMcpTools : new Set<string>()),
+    [isMcpLive, observedMcpTools]
+  );
+  const observedMcpToolCount = MCP_PROOF_TOOLS.filter((tool) => liveObservedMcpTools.has(tool)).length;
 
   useEffect(() => {
     void fetchHealth();
@@ -389,6 +409,18 @@ function App() {
           </div>
         )}
 
+        <ProofStrip
+          live={isMcpLive}
+          mode={health?.mode ?? "unknown"}
+          client={health?.splunk_client ?? "api offline"}
+          aiProvider={aiProvider}
+          aiModel={aiModel}
+          aiModelUrl={aiModelUrl}
+          observedMcpTools={liveObservedMcpTools}
+          observedMcpToolCount={observedMcpToolCount}
+          evidenceCount={investigation?.evidence.length ?? 0}
+        />
+
         <section className="summary-grid">
           <Metric label="Confidence" value={investigation?.confidence ?? "pending"} icon={<CheckCircle2 />} />
           <Metric label="Evidence" value={`${investigation?.evidence.length ?? 0}`} icon={<Radio />} />
@@ -531,10 +563,18 @@ function App() {
                     </div>
                     <h4>{item.title}</h4>
                     <p>{item.summary}</p>
-                    <button className="text-action" onClick={() => setSelectedEvidenceId(item.id)}>
-                      <Search aria-hidden="true" />
-                      Inspect
-                    </button>
+                    <div className="evidence-actions">
+                      <button className="text-action" onClick={() => setSelectedEvidenceId(item.id)}>
+                        <Search aria-hidden="true" />
+                        Inspect
+                      </button>
+                      {item.splunk_url && (
+                        <a className="text-action" href={item.splunk_url} target="_blank" rel="noreferrer">
+                          <ExternalLink aria-hidden="true" />
+                          Splunk
+                        </a>
+                      )}
+                    </div>
                   </article>
                 ))}
               </div>
@@ -595,11 +635,79 @@ function App() {
               </button>
             </div>
             <p>{selectedEvidence.summary}</p>
+            {selectedEvidence.splunk_url && (
+              <a className="drawer-link" href={selectedEvidence.splunk_url} target="_blank" rel="noreferrer">
+                <ExternalLink aria-hidden="true" />
+                Open source event in Splunk
+              </a>
+            )}
             <pre>{JSON.stringify(selectedEvidence.fields, null, 2)}</pre>
           </aside>
         )}
       </section>
     </main>
+  );
+}
+
+function ProofStrip({
+  live,
+  mode,
+  client,
+  aiProvider,
+  aiModel,
+  aiModelUrl,
+  observedMcpTools,
+  observedMcpToolCount,
+  evidenceCount
+}: {
+  live: boolean;
+  mode: string;
+  client: string;
+  aiProvider: string;
+  aiModel: string;
+  aiModelUrl: string;
+  observedMcpTools: Set<string>;
+  observedMcpToolCount: number;
+  evidenceCount: number;
+}) {
+  return (
+    <section className={`proof-strip ${live ? "live" : "not-live"}`} aria-label="Live MCP proof strip">
+      <article className="proof-card proof-card-primary">
+        <span className="proof-kicker">Splunk MCP</span>
+        <strong>{live ? "Splunk MCP live" : "MCP not live"}</strong>
+        <div className="proof-inline" aria-label="MCP runtime and client">
+          <span>{mode}</span>
+          <span>{client}</span>
+        </div>
+      </article>
+      <article className="proof-card">
+        <span className="proof-kicker">AI Runtime</span>
+        {aiModelUrl ? (
+          <a href={aiModelUrl} target="_blank" rel="noreferrer" title={aiModelUrl}>
+            {formatModelName(aiModel)}
+          </a>
+        ) : (
+          <strong>{formatModelName(aiModel)}</strong>
+        )}
+        <small>{aiProvider}</small>
+      </article>
+      <article className="proof-card proof-tools">
+        <span className="proof-kicker">Tool Calls</span>
+        <strong>{observedMcpToolCount}/{MCP_PROOF_TOOLS.length} observed</strong>
+        <div className="tool-badges" aria-label="Required MCP tool calls">
+          {MCP_PROOF_TOOLS.map((tool) => (
+            <span className={observedMcpTools.has(tool) ? "observed" : ""} key={tool}>
+              {tool}
+            </span>
+          ))}
+        </div>
+      </article>
+      <article className="proof-card">
+        <span className="proof-kicker">Evidence Items</span>
+        <strong>{evidenceCount ? `${evidenceCount} items` : "pending"}</strong>
+        <small>{live ? "Splunk-backed artifacts" : "sample artifacts"}</small>
+      </article>
+    </section>
   );
 }
 

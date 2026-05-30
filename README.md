@@ -4,6 +4,16 @@ BreachLens is a Splunk MCP SOC copilot built for the Splunk Agentic Ops Hackatho
 
 ![BreachLens investigation console](docs/breachlens-ui-real-splunk.png)
 
+## Submission Snapshot
+
+- **Devpost track:** Security
+- **Bonus target:** Best Use of Splunk MCP Server
+- **Primary workflow:** Alert triage -> Splunk MCP pivots -> evidence-gated AI note -> incident timeline -> ledger/report/detection drafts
+- **Live AI model:** NiNa through local Ollama, with model link exposed in the UI: [LockeLamora2077/NiNa](https://huggingface.co/LockeLamora2077/NiNa)
+- **Judge-facing proof:** first-viewport strip showing `Splunk MCP live`, `mcp`, `splunk_mcp`, `NiNa`, `4/4 observed`, and evidence count
+
+For copy-ready Devpost text and recording notes, see [docs/devpost_submission.md](docs/devpost_submission.md).
+
 ## Why It Should Score
 
 - **Security impact:** Reduces alert triage from scattered SPL pivots to an evidence-backed investigation package.
@@ -19,6 +29,14 @@ BreachLens is a Splunk MCP SOC copilot built for the Splunk Agentic Ops Hackatho
 - **Potential impact:** Compresses a multi-pivot incident investigation into an evidence-backed package with reusable detections and response guidance.
 - **Quality of idea:** The core differentiator is evidence-gated AI: every timeline, MITRE, response, and report claim must trace back to Splunk evidence IDs.
 - **Bonus target:** Best Use of Splunk MCP Server. The demo should visibly show `mcp`, `splunk_mcp`, and transcript entries for `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_knowledge_objects`, and `splunk_run_query`.
+
+## How Splunk And AI Are Integrated
+
+1. The Splunk app in `apps/breachlens_splunk/` defines the `breachlens` index, JSON sourcetypes, saved searches, macros, and dashboard.
+2. Splunk indexes synthetic auth, cloud, endpoint, proxy, and alert events from `sample_data/`.
+3. The FastAPI backend can run in `mcp`, `rest`, or `sample` mode. The final demo should use `mcp`.
+4. In MCP mode, the agent calls Splunk MCP Server tools: `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_knowledge_objects`, and `splunk_run_query`.
+5. The AI analyst note uses Ollama/OpenAI-compatible JSON output, but the backend accepts only evidence-referenced claims and falls back deterministically if the model is unavailable or unsafe.
 
 ## Repository Layout
 
@@ -47,7 +65,7 @@ architecture_diagram.md   Root-level architecture diagram for Devpost
    docker compose up -d splunk
    ```
 
-3. Open Splunk at `http://localhost:18000` and log in as `admin` with `SPLUNK_PASSWORD` from `.env`.
+3. Open Splunk at `http://127.0.0.1:18000` and log in as `admin` with `SPLUNK_PASSWORD` from `.env`.
 
 4. Install Splunk MCP Server from Splunkbase, enable `mcp_tool_execute` for the demo role, generate an encrypted MCP token, and set:
 
@@ -91,10 +109,11 @@ After starting Splunk, the MCP Server app, the backend, and the frontend in MCP 
 cd frontend
 $env:EXPECTED_BREACHLENS_MODE = "mcp"
 $env:EXPECTED_SPLUNK_CLIENT = "splunk_mcp"
+$env:EXPECTED_AI_MODEL_LABEL = "NiNa"
 npm run test:live
 ```
 
-This captures `docs/breachlens-ui-real-splunk.png`, downloads the evidence ledger and incident report, and verifies the UI shows the MCP source badges plus the Splunk MCP tool transcript. The sample mode is intentionally available for development, but it should not be used for the final hackathon recording.
+This captures `docs/breachlens-ui-real-splunk.png`, downloads the evidence ledger and incident report, and verifies the first-viewport proof strip shows `Splunk MCP live`, `mcp`, `splunk_mcp`, `NiNa`, `4/4 observed`, evidence items, and the Splunk MCP tool transcript. The sample mode is intentionally available for development, but it should not be used for the final hackathon recording.
 
 ## API
 

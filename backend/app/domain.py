@@ -64,6 +64,7 @@ class Evidence:
     title: str
     summary: str
     fields: JsonDict
+    splunk_url: str = ""
 
     def to_dict(self) -> JsonDict:
         return asdict(self)

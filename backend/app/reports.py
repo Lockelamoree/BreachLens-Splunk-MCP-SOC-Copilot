@@ -103,6 +103,7 @@ def build_evidence_ledger(investigation: Investigation) -> dict[str, Any]:
 
 def build_incident_report_markdown(investigation: Investigation) -> str:
     ledger = build_evidence_ledger(investigation)
+    evidence_by_id = {item.id: item for item in investigation.evidence}
     lines = [
         f"# BreachLens Incident Report: {investigation.alert.alert_id}",
         "",
@@ -128,7 +129,7 @@ def build_incident_report_markdown(investigation: Investigation) -> str:
         investigation.analyst_note.narrative if investigation.analyst_note else "No analyst note generated.",
         "",
         (
-            f"Evidence: {', '.join(f'`{item}`' for item in investigation.analyst_note.evidence_ids)}"
+            f"Evidence: {_evidence_links(investigation.analyst_note.evidence_ids, evidence_by_id)}"
             if investigation.analyst_note
             else ""
         ),
@@ -155,7 +156,7 @@ def build_incident_report_markdown(investigation: Investigation) -> str:
                 "",
                 event.narrative,
                 "",
-                f"Evidence: {', '.join(f'`{item}`' for item in event.evidence_ids)}",
+                f"Evidence: {_evidence_links(event.evidence_ids, evidence_by_id)}",
                 "",
             ]
         )
@@ -164,21 +165,22 @@ def build_incident_report_markdown(investigation: Investigation) -> str:
     for mapping in investigation.mitre:
         lines.append(
             f"- `{mapping.technique_id}` **{mapping.technique}** ({mapping.tactic}) - "
-            f"{mapping.rationale} Evidence: {', '.join(mapping.evidence_ids)}"
+            f"{mapping.rationale} Evidence: {_evidence_links(mapping.evidence_ids, evidence_by_id)}"
         )
 
     lines.extend(["", "## Response Actions", ""])
     for action in investigation.response_actions:
         lines.append(
             f"- **{action.priority} / {action.owner}:** {action.action} "
-            f"Evidence: {', '.join(action.evidence_ids)}"
+            f"Evidence: {_evidence_links(action.evidence_ids, evidence_by_id)}"
         )
 
     lines.extend(["", "## Evidence Ledger", ""])
     for claim in ledger["claims"]:
         lines.append(
             f"- `{claim['claim_id']}` {claim['claim_type']}: {claim['claim']} "
-            f"Evidence: {', '.join(claim['evidence_ids'])}; Queries: {', '.join(claim['spl_query_ids'])}"
+            f"Evidence: {_evidence_links(claim['evidence_ids'], evidence_by_id)}; "
+            f"Queries: {', '.join(claim['spl_query_ids'])}"
         )
 
     lines.extend(["", "## SPL Transcript", ""])
@@ -201,3 +203,14 @@ def build_incident_report_markdown(investigation: Investigation) -> str:
 
 def _query_ids(evidence_ids: list[str], evidence_by_id: dict) -> list[str]:
     return sorted({evidence_by_id[item].query_id for item in evidence_ids if item in evidence_by_id})
+
+
+def _evidence_links(evidence_ids: list[str], evidence_by_id: dict) -> str:
+    links = []
+    for evidence_id in evidence_ids:
+        evidence = evidence_by_id.get(evidence_id)
+        if evidence and evidence.splunk_url:
+            links.append(f"[`{evidence_id}`]({evidence.splunk_url})")
+        else:
+            links.append(f"`{evidence_id}`")
+    return ", ".join(links)

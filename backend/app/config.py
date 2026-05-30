@@ -30,6 +30,7 @@ class Settings:
     cors_origins: list[str]
     splunk_index: str
     splunk_base_url: str
+    splunk_ui_url: str
     splunk_username: str
     splunk_password: str
     splunk_token: str
@@ -77,6 +78,7 @@ def load_settings() -> Settings:
         ),
         splunk_index=os.getenv("SPLUNK_INDEX", "breachlens"),
         splunk_base_url=os.getenv("SPLUNK_BASE_URL", "https://localhost:18089").rstrip("/"),
+        splunk_ui_url=os.getenv("SPLUNK_UI_URL", "http://127.0.0.1:18000").rstrip("/"),
         splunk_username=os.getenv("SPLUNK_USERNAME", "admin"),
         splunk_password=os.getenv("SPLUNK_PASSWORD", ""),
         splunk_token=os.getenv("SPLUNK_TOKEN", ""),

@@ -48,6 +48,8 @@ def health() -> dict:
         "mode": settings.mode,
         "splunk_client": client.name,
         "splunk_index": settings.splunk_index,
+        "splunk_ui_url": settings.splunk_ui_url,
+        "splunk_evidence_links_enabled": _splunk_evidence_links_enabled(),
         "ai_provider": llm_provider.name,
         "ai_model": _ai_model_name(),
         "ai_model_url": _ai_model_url(),
@@ -71,6 +73,16 @@ def _ai_model_url() -> str:
     return ""
 
 
+def _splunk_evidence_links_enabled() -> bool:
+    return bool(settings.splunk_ui_url and client.name != "sample_data")
+
+
+def _splunk_ui_url_for_evidence() -> str:
+    if not _splunk_evidence_links_enabled():
+        return ""
+    return settings.splunk_ui_url
+
+
 @app.get("/api/alerts")
 def list_alerts() -> dict:
     try:
@@ -89,6 +101,7 @@ def create_investigation(request: InvestigationRequest) -> dict:
             objective=request.objective,
             index=settings.splunk_index,
             llm_provider=llm_provider,
+            splunk_ui_url=_splunk_ui_url_for_evidence(),
         )
     except EvidenceValidationError as exc:
         raise HTTPException(status_code=400, detail=str(exc)) from exc

@@ -21,7 +21,7 @@ Source criteria: [Splunk Agentic Ops Hackathon](https://splunk.devpost.com/) and
 | Criterion | Current score | Why | Highest-impact lift |
 | --- | ---: | --- | --- |
 | Technological Implementation | 8/10 | Working backend, frontend, Splunk app, tests, evidence validation, AI analyst note, reports, exports. | Prove MCP end-to-end and add one command/script that validates Splunk indexing plus MCP tool calls. |
-| Design | 8/10 | Polished SOC console, clear timeline, metrics, evidence drawer, exports. | Add a short demo-proof strip or make MCP/tool proof visually impossible to miss. |
+| Design | 8/10 | Polished SOC console, clear timeline, metrics, proof strip, evidence drawer, exports. | Record the first viewport with the proof strip visible before and after investigation. |
 | Potential Impact | 8/10 | Triage compression, investigation package, detections, response guidance. | Support the "20m -> <2m" claim with a before/after workflow in README/video. |
 | Quality of the Idea | 7/10 | Strong SOC copilot idea with evidence gating; category is competitive. | Emphasize evidence-gated AI as the differentiator from generic log chatbots. |
 | Best Use of Splunk MCP Server bonus | 7/10 | MCP client exists and transcripts expose MCP-style tool calls. | Record final demo in MCP mode and include live validation output showing `splunk_mcp`. |
@@ -34,12 +34,18 @@ Run with Splunk MCP mode before recording:
 cd frontend
 $env:EXPECTED_BREACHLENS_MODE = "mcp"
 $env:EXPECTED_SPLUNK_CLIENT = "splunk_mcp"
+$env:EXPECTED_AI_MODEL_LABEL = "NiNa"
 npm run test:live
 ```
 
-The output should include the source badges, exported ledger/report filenames, and MCP proof tool names:
+The output should include the first-viewport proof strip, exported ledger/report filenames, and MCP proof tool names:
 
 ```text
+Splunk MCP live
+mcp
+splunk_mcp
+NiNa
+4/4 observed
 splunk_get_indexes
 splunk_get_metadata
 splunk_get_knowledge_objects
