@@ -38,6 +38,8 @@ no *mcp* app found
 
 That means I should not claim `mcp / splunk_mcp` proof yet. REST mode can show abstract tool names like `splunk_get_indexes`, but BreachLens now records `transport` on every transcript entry, and the UI only counts required tool calls as MCP proof when the transcript transport is actually `mcp`.
 
+I also checked the official Splunkbase download URL for the MCP Server app. It redirects to a login-protected download and returns `401 Unauthorized` without an authenticated Splunkbase session. The next step is to download the `.tgz` manually from a logged-in Splunkbase session and place it in `.quarantine/` for triage and install.
+
 ## Command To Validate Final MCP Mode
 
 After installing and configuring Splunk MCP Server locally:

@@ -37,6 +37,7 @@ class Settings:
     splunk_verify_tls: bool
     splunk_mcp_url: str
     splunk_mcp_token: str
+    splunk_mcp_verify_tls: bool
     sample_data_dir: Path
     ollama_base_url: str
     ollama_model: str
@@ -85,6 +86,7 @@ def load_settings() -> Settings:
         splunk_verify_tls=_bool_from_env("SPLUNK_VERIFY_TLS", False),
         splunk_mcp_url=os.getenv("SPLUNK_MCP_URL", ""),
         splunk_mcp_token=os.getenv("SPLUNK_MCP_TOKEN", ""),
+        splunk_mcp_verify_tls=_bool_from_env("SPLUNK_MCP_VERIFY_TLS", False),
         sample_data_dir=Path(os.getenv("BREACHLENS_SAMPLE_DATA_DIR", root / "sample_data")),
         ollama_base_url=os.getenv("OLLAMA_BASE_URL", "").rstrip("/"),
         ollama_model=os.getenv("OLLAMA_MODEL", "llama3.1"),

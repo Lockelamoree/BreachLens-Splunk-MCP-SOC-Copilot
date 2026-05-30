@@ -6,7 +6,7 @@ import ssl
 import urllib.error
 import urllib.parse
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
@@ -115,7 +115,9 @@ class SampleDataClient:
 class McpSplunkClient:
     url: str
     token: str
+    verify_tls: bool
     name: str = "splunk_mcp"
+    session_id: str = field(default="", init=False)
 
     def run_query(self, spl: str, earliest: str = "-7d", latest: str = "now") -> list[dict]:
         return self._call_tool(
@@ -132,29 +134,79 @@ class McpSplunkClient:
     def get_knowledge_objects(self) -> list[dict]:
         return self._call_tool("splunk_get_knowledge_objects", {})
 
+    def list_tools(self) -> list[dict]:
+        self._ensure_initialized()
+        payload = self._post_json_rpc(
+            {
+                "jsonrpc": "2.0",
+                "id": "breachlens-tools-list",
+                "method": "tools/list",
+                "params": {},
+            }
+        )
+        tools = payload.get("result", {}).get("tools", [])
+        return [item for item in tools if isinstance(item, dict)]
+
     def _call_tool(self, name: str, arguments: dict) -> list[dict]:
+        self._ensure_initialized()
         payload = {
             "jsonrpc": "2.0",
             "id": f"breachlens-{name}",
             "method": "tools/call",
             "params": {"name": name, "arguments": arguments},
         }
+        return _extract_tool_results_from_payload(self._post_json_rpc(payload))
+
+    def _ensure_initialized(self) -> None:
+        if self.session_id:
+            return
+        self._post_json_rpc(
+            {
+                "jsonrpc": "2.0",
+                "id": "breachlens-initialize",
+                "method": "initialize",
+                "params": {
+                    "protocolVersion": "2025-06-18",
+                    "capabilities": {},
+                    "clientInfo": {"name": "breachlens", "version": "0.1.0"},
+                },
+            }
+        )
+        self._post_json_rpc(
+            {
+                "jsonrpc": "2.0",
+                "method": "notifications/initialized",
+                "params": {},
+            }
+        )
+
+    def _post_json_rpc(self, payload: dict) -> dict:
+        headers = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+        }
+        if self.session_id:
+            headers["Mcp-Session-Id"] = self.session_id
         request = urllib.request.Request(
             self.url,
             data=json.dumps(payload).encode("utf-8"),
-            headers={
-                "Authorization": f"Bearer {self.token}",
-                "Content-Type": "application/json",
-                "Accept": "application/json, text/event-stream",
-            },
+            headers=headers,
             method="POST",
         )
+        context = None if self.verify_tls else ssl._create_unverified_context()
         try:
-            with urllib.request.urlopen(request, timeout=45) as response:
+            with urllib.request.urlopen(request, timeout=45, context=context) as response:
                 body = response.read().decode("utf-8")
+                session_id = response.headers.get("Mcp-Session-Id") or response.headers.get("mcp-session-id")
+                if session_id:
+                    self.session_id = session_id
         except urllib.error.URLError as exc:
-            raise SplunkClientError(f"MCP tool call failed for {name}: {exc}") from exc
-        return _extract_tool_results(body)
+            method = payload.get("method", "unknown")
+            raise SplunkClientError(f"MCP request failed for {method}: {exc}") from exc
+        if not body.strip():
+            return {}
+        return _load_json_rpc_payload(body)
 
 
 @dataclass
@@ -229,13 +281,17 @@ class RestSplunkClient:
         return {"Authorization": f"Basic {encoded}"}
 
 
-def _extract_tool_results(body: str) -> list[dict]:
+def _load_json_rpc_payload(body: str) -> dict:
     if body.startswith("event:") or "\ndata:" in body:
         data_lines = [line.removeprefix("data:").strip() for line in body.splitlines() if line.startswith("data:")]
         body = data_lines[-1] if data_lines else "{}"
     payload = json.loads(body)
     if "error" in payload:
         raise SplunkClientError(str(payload["error"]))
+    return payload
+
+
+def _extract_tool_results_from_payload(payload: dict) -> list[dict]:
     result = payload.get("result", payload)
     if isinstance(result, list):
         return [item for item in result if isinstance(item, dict)]
@@ -261,7 +317,11 @@ def make_splunk_client(settings: Settings) -> SplunkToolClient:
     if settings.mode == "mcp":
         if not settings.splunk_mcp_url or not settings.splunk_mcp_token:
             raise SplunkClientError("SPLUNK_MCP_URL and SPLUNK_MCP_TOKEN are required for MCP mode.")
-        return McpSplunkClient(settings.splunk_mcp_url, settings.splunk_mcp_token)
+        return McpSplunkClient(
+            settings.splunk_mcp_url,
+            settings.splunk_mcp_token,
+            settings.splunk_mcp_verify_tls,
+        )
     if settings.mode == "rest":
         return RestSplunkClient(
             settings.splunk_base_url,

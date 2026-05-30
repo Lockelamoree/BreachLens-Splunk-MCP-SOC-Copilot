@@ -162,9 +162,12 @@ The local REST path proves the app is using live Splunk data. For the Splunk MCP
 BREACHLENS_MODE=mcp
 SPLUNK_MCP_URL=<endpoint from the Splunk MCP Server app>
 SPLUNK_MCP_TOKEN=<encrypted token from the Splunk MCP Server app>
+SPLUNK_MCP_VERIFY_TLS=false
 ```
 
 Then restart the backend.
+
+I keep the detailed live setup steps in [docs/mcp_live_setup.md](docs/mcp_live_setup.md).
 
 ## NiNa / Ollama
 
@@ -180,6 +183,11 @@ If no model is configured, BreachLens uses deterministic fallback reasoning and 
 ## MCP Demo Validation
 
 After Splunk, the Splunk MCP Server app, the backend, and the frontend are running in MCP mode:
+
+```powershell
+cd backend
+.\.venv\Scripts\python.exe scripts\validate_mcp.py --out docs/mcp_validation.md
+```
 
 ```powershell
 cd frontend
