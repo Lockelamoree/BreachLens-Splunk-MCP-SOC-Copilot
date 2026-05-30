@@ -12,6 +12,7 @@ playwright-report/
 test-results/
 logs/
 runtime_logs/
+.quarantine/
 *.log
 .DS_Store
 Thumbs.db

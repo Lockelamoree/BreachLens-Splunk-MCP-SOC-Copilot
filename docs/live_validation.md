@@ -6,13 +6,14 @@ This is the honest state of the local validation environment.
 
 ## Current Live Splunk Path
 
-The local Splunk Enterprise container is running with the BreachLens app installed:
+The local Splunk Enterprise container is running with the BreachLens app and Splunk MCP Server installed:
 
 ```text
 container: breachlens-splunk
 app: breachlens_splunk
-backend client: splunk_rest
-runtime mode: rest
+app: Splunk_MCP_Server 1.2.0
+backend client: splunk_mcp
+runtime mode: mcp
 ```
 
 The local `breachlens` index currently has live indexed demo data:
@@ -25,24 +26,30 @@ breachlens:edr    3
 breachlens:proxy  3
 ```
 
-This validates the normal local live-data path: `rest / splunk_rest`.
+This validates that the demo data is indexed in local Splunk. The final demo path now runs through `mcp / splunk_mcp`.
 
 ## MCP Proof Status
 
-MCP proof is still pending. I checked the local Splunk app directory and the Splunk MCP Server app is not installed yet:
+MCP proof is now validated against the local Splunk instance. The generated proof file is [mcp_validation.md](mcp_validation.md).
 
 ```text
-/opt/splunk/etc/apps
-no *mcp* app found
+runtime: mcp / splunk_mcp
+endpoint: https://localhost:18089/services/mcp
+required tools observed: true
+evidence items: 23
 ```
 
-That means I should not claim `mcp / splunk_mcp` proof yet. REST mode can show abstract tool names like `splunk_get_indexes`, but BreachLens now records `transport` on every transcript entry, and the UI only counts required tool calls as MCP proof when the transcript transport is actually `mcp`.
+REST mode can still show abstract tool names like `splunk_get_indexes`, so I keep the transport check explicit. BreachLens records `transport` on every transcript entry, and the UI only counts the four required tool calls as MCP proof when the backend is actually running `mcp / splunk_mcp`.
 
-I also checked the official Splunkbase download URL for the MCP Server app. It redirects to a login-protected download and returns `401 Unauthorized` without an authenticated Splunkbase session. The next step is to download the `.tgz` manually from a logged-in Splunkbase session and place it in `.quarantine/` for triage and install.
+The installed Splunk MCP Server package was downloaded manually from Splunkbase, placed under `.quarantine/`, hash-checked, statically triaged, and then installed into the local Splunk container.
 
 ## Command To Validate Final MCP Mode
 
 After installing and configuring Splunk MCP Server locally:
+
+```powershell
+.\backend\.venv\Scripts\python.exe backend\scripts\validate_mcp.py --out docs\mcp_validation.md
+```
 
 ```powershell
 cd frontend

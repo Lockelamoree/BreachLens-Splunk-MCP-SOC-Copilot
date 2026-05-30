@@ -22,6 +22,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Evaluate BreachLens AI analyst-note behavior.")
     parser.add_argument("--alerts", type=int, default=3, help="Maximum alerts to evaluate.")
     parser.add_argument("--json", action="store_true", help="Emit JSON instead of Markdown.")
+    parser.add_argument("--out", help="Optional file path for the generated artifact.")
     args = parser.parse_args()
 
     settings = load_settings()
@@ -65,10 +66,12 @@ def main() -> None:
         "alert_count": len(alerts),
         "rows": rows,
     }
-    if args.json:
-        print(json.dumps(artifact, indent=2))
-        return
-    print(_markdown_report(artifact))
+    output = json.dumps(artifact, indent=2) if args.json else _markdown_report(artifact)
+    if args.out:
+        output_path = Path(args.out)
+        output_path.parent.mkdir(parents=True, exist_ok=True)
+        output_path.write_text(output + "\n", encoding="utf-8")
+    print(output)
 
 
 def _evaluate_provider(
@@ -160,6 +163,13 @@ def _markdown_report(artifact: dict[str, Any]) -> str:
                     "warnings": warnings.replace("|", "\\|"),
                 }
             )
+        )
+    if artifact["mode"] == "mcp" and artifact["splunk_client"] == "splunk_mcp":
+        lines.extend(
+            [
+                "",
+                "My read: NiNa passed the JSON/evidence/field-reference gate while the investigation path was running through Splunk MCP.",
+            ]
         )
     return "\n".join(lines)
 

@@ -30,7 +30,7 @@ The important part is the evidence gate. The AI analyst note can summarize and p
 
 - The first-viewport proof strip.
 - Live Splunk data in normal `rest / splunk_rest` mode.
-- Final MCP proof in `mcp / splunk_mcp` mode once the Splunk MCP Server app is installed locally.
+- Final MCP proof in `mcp / splunk_mcp` mode with the Splunk MCP Server app installed locally.
 - NiNa running through local Ollama, with the Hugging Face model link visible.
 - MCP transcript entries for:
   - `splunk_get_indexes`
@@ -50,6 +50,7 @@ The important part is the evidence gate. The AI analyst note can summarize and p
 - `sample` mode exists only so I can develop the UI without Splunk running.
 - The SPL transcript is visible in the UI so the data path is auditable.
 - Each transcript entry records the transport. REST calls can show the same abstract tool names, but only entries with `transport=mcp` should count as MCP proof.
+- The UI keeps the four logical labels visible for demo clarity, while the backend maps them to the installed Splunk MCP Server tool names when needed.
 
 ## How I Use AI
 

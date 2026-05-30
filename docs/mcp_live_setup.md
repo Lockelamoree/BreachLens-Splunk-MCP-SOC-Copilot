@@ -13,20 +13,20 @@ https://splunkbase.splunk.com/app/7931
 Splunkbase requires login for the app archive. Put the downloaded `.tgz` here:
 
 ```text
-.quarantine/splunk-mcp-server_026.tgz
+.quarantine/splunk-mcp-server_120.tgz
 ```
 
-Before install, verify the SHA256 shown by Splunkbase for the downloaded version. For version `0.2.6`, Splunkbase lists:
+Before install, verify the SHA256 shown by Splunkbase for the downloaded version. For the local version `1.2.0` package I downloaded, my local hash is:
 
 ```text
-84b9161e1d6a2fbd0f69cfb95b9c27f6a1a9f221be27d8c56fe78eaff6ee4e29
+fa3c2d7ef500148d9ee2f2b92f1b2e5e3026401ca57138ffdfab20710f7d695c
 ```
 
 ## 2. Install Into Local Splunk
 
 ```powershell
 $env:SPLUNK_PASSWORD = "<local admin password>"
-.\scripts\install_splunk_mcp_app.ps1 -PackagePath .\.quarantine\splunk-mcp-server_026.tgz
+.\scripts\install_splunk_mcp_app.ps1 -PackagePath .\.quarantine\splunk-mcp-server_120.tgz
 ```
 
 Restart Splunk if the installer asks for it:
@@ -67,8 +67,7 @@ Keep `SPLUNK_MCP_VERIFY_TLS=false` only for this localhost/self-signed-cert demo
 ## 5. Validate MCP Proof
 
 ```powershell
-cd backend
-.\.venv\Scripts\python.exe scripts\validate_mcp.py --out docs/mcp_validation.md
+.\backend\.venv\Scripts\python.exe backend\scripts\validate_mcp.py --out docs\mcp_validation.md
 ```
 
 Then run the UI proof:
@@ -90,3 +89,5 @@ splunk_mcp
 4/4 observed
 transport=mcp
 ```
+
+BreachLens keeps the required logical labels visible in the transcript and proof strip. With Splunk MCP Server 1.2.0, the backend maps those labels to the installed server tool names, such as `get_indexes`, `get_metadata`, `get_knowledge_objects`, and `run_query`.

@@ -72,6 +72,8 @@ splunk_run_query
 
 Tool names alone are not enough for MCP proof. The SPL transcript also records `transport`, and the UI only counts those four calls as MCP proof when the backend is actually running `mcp / splunk_mcp`.
 
+One small naming note: BreachLens displays those four logical labels because they are the proof points I want visible in the demo. The MCP client maps them to the installed Splunk MCP Server tool names when the local server exposes newer names, such as `get_indexes` and `run_query`.
+
 ## How Splunk And AI Fit Together
 
 1. `apps/breachlens_splunk/` defines the Splunk app, index, sourcetypes, inputs, saved searches, macros, and dashboard.
@@ -185,8 +187,7 @@ If no model is configured, BreachLens uses deterministic fallback reasoning and 
 After Splunk, the Splunk MCP Server app, the backend, and the frontend are running in MCP mode:
 
 ```powershell
-cd backend
-.\.venv\Scripts\python.exe scripts\validate_mcp.py --out docs/mcp_validation.md
+.\backend\.venv\Scripts\python.exe backend\scripts\validate_mcp.py --out docs\mcp_validation.md
 ```
 
 ```powershell

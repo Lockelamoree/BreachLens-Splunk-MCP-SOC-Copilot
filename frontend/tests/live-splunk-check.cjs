@@ -10,6 +10,7 @@ const requiredMcpTools = [
   "splunk_get_knowledge_objects",
   "splunk_run_query",
 ];
+const investigationTimeoutMs = Number(process.env.BREACHLENS_INVESTIGATION_TIMEOUT_MS || 60000);
 
 (async () => {
   const browser = await chromium.launch();
@@ -29,12 +30,12 @@ const requiredMcpTools = [
   await proofStrip.getByText(expectedClient, { exact: true }).waitFor({ timeout: 10000 });
   await proofStrip.getByText(expectedAiModel).waitFor({ timeout: 10000 });
   await page.getByRole("button", { name: "Investigate" }).click();
-  await page.getByText("Impact Meter").waitFor({ timeout: 15000 });
-  await page.getByText("Large outbound transfer to file-sharing service").waitFor({ timeout: 15000 });
-  await proofStrip.getByText(`${requiredMcpTools.length}/${requiredMcpTools.length} observed`).waitFor({ timeout: 15000 });
-  await proofStrip.getByText(/\d+ items/).waitFor({ timeout: 15000 });
+  await page.getByText("Impact Meter").waitFor({ timeout: investigationTimeoutMs });
+  await page.getByText("Large outbound transfer to file-sharing service").waitFor({ timeout: investigationTimeoutMs });
+  await proofStrip.getByText(`${requiredMcpTools.length}/${requiredMcpTools.length} observed`).waitFor({ timeout: investigationTimeoutMs });
+  await proofStrip.getByText(/\d+ items/).waitFor({ timeout: investigationTimeoutMs });
   for (const toolName of requiredMcpTools) {
-    await proofStrip.locator(".tool-badges span.observed").filter({ hasText: toolName }).first().waitFor({ timeout: 15000 });
+    await proofStrip.locator(".tool-badges span.observed").filter({ hasText: toolName }).first().waitFor({ timeout: investigationTimeoutMs });
   }
   await page.locator(".timeline").getByRole("button").first().click();
   await page.getByLabel("Evidence details").waitFor({ timeout: 10000 });

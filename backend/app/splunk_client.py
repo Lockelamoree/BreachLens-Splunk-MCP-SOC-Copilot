@@ -118,21 +118,31 @@ class McpSplunkClient:
     verify_tls: bool
     name: str = "splunk_mcp"
     session_id: str = field(default="", init=False)
+    tool_names: set[str] = field(default_factory=set, init=False)
+    tools_loaded: bool = field(default=False, init=False)
 
     def run_query(self, spl: str, earliest: str = "-7d", latest: str = "now") -> list[dict]:
+        tool_name = self._resolve_tool_name("splunk_run_query", "run_query")
+        arguments = {"query": spl}
+        if tool_name == "splunk_run_query":
+            arguments.update({"earliest_time": earliest, "latest_time": latest})
         return self._call_tool(
-            "splunk_run_query",
-            {"query": spl, "earliest_time": earliest, "latest_time": latest},
+            tool_name,
+            arguments,
         )
 
     def get_indexes(self) -> list[dict]:
-        return self._call_tool("splunk_get_indexes", {})
+        return self._call_tool(self._resolve_tool_name("splunk_get_indexes", "get_indexes"), {})
 
     def get_metadata(self) -> list[dict]:
-        return self._call_tool("splunk_get_metadata", {})
+        tool_name = self._resolve_tool_name("splunk_get_metadata", "get_metadata")
+        arguments = {} if tool_name == "splunk_get_metadata" else {"type": "sourcetypes", "index": "*"}
+        return self._call_tool(tool_name, arguments)
 
     def get_knowledge_objects(self) -> list[dict]:
-        return self._call_tool("splunk_get_knowledge_objects", {})
+        tool_name = self._resolve_tool_name("splunk_get_knowledge_objects", "get_knowledge_objects")
+        arguments = {} if tool_name == "splunk_get_knowledge_objects" else {"type": "saved_searches"}
+        return self._call_tool(tool_name, arguments)
 
     def list_tools(self) -> list[dict]:
         self._ensure_initialized()
@@ -145,7 +155,17 @@ class McpSplunkClient:
             }
         )
         tools = payload.get("result", {}).get("tools", [])
-        return [item for item in tools if isinstance(item, dict)]
+        parsed = [item for item in tools if isinstance(item, dict)]
+        self.tool_names = {str(item.get("name", "")) for item in parsed if item.get("name")}
+        self.tools_loaded = True
+        return parsed
+
+    def _resolve_tool_name(self, legacy_name: str, current_name: str) -> str:
+        names = self._available_tool_names()
+        for candidate in (legacy_name, current_name):
+            if candidate in names:
+                return candidate
+        return legacy_name
 
     def _call_tool(self, name: str, arguments: dict) -> list[dict]:
         self._ensure_initialized()
@@ -156,6 +176,14 @@ class McpSplunkClient:
             "params": {"name": name, "arguments": arguments},
         }
         return _extract_tool_results_from_payload(self._post_json_rpc(payload))
+
+    def _available_tool_names(self) -> set[str]:
+        if not self.tools_loaded:
+            try:
+                self.list_tools()
+            except SplunkClientError:
+                self.tools_loaded = True
+        return self.tool_names
 
     def _ensure_initialized(self) -> None:
         if self.session_id:
@@ -302,15 +330,43 @@ def _extract_tool_results_from_payload(payload: dict) -> list[dict]:
                 parsed = []
                 for item in value:
                     if isinstance(item, dict):
+                        expanded = _expand_mcp_content_item(item)
+                        if expanded is not None:
+                            return expanded
                         parsed.append(item)
                     elif isinstance(item, str):
                         try:
+                            expanded = _expand_text_payload(item)
+                            if expanded is not None:
+                                return expanded
                             parsed.append(json.loads(item))
                         except json.JSONDecodeError:
                             parsed.append({"text": item})
                 return parsed
         return [result]
     return [{"text": str(result)}]
+
+
+def _expand_mcp_content_item(item: dict) -> list[dict] | None:
+    if item.get("type") != "text" or not isinstance(item.get("text"), str):
+        return None
+    return _expand_text_payload(item["text"])
+
+
+def _expand_text_payload(text: str) -> list[dict] | None:
+    try:
+        payload = json.loads(text)
+    except json.JSONDecodeError:
+        return None
+    if isinstance(payload, dict):
+        for key in ("results", "rows", "data"):
+            value = payload.get(key)
+            if isinstance(value, list):
+                return [item for item in value if isinstance(item, dict)]
+        return [payload]
+    if isinstance(payload, list):
+        return [item for item in payload if isinstance(item, dict)]
+    return None
 
 
 def make_splunk_client(settings: Settings) -> SplunkToolClient:

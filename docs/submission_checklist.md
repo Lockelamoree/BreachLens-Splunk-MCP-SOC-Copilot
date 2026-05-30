@@ -13,11 +13,11 @@ This is my own last-pass checklist before Devpost. No magic, no "we will fix it 
 - [x] Local Splunk live-data path works in `rest / splunk_rest` mode.
 - [x] AI evaluation artifact shows NiNa returning accepted JSON, evidence IDs, and field-backed claims.
 - [x] Security boundaries are explicit for local TLS/basic auth versus production token/TLS/least privilege.
-- [ ] Splunk MCP Server is installed and configured locally.
-- [ ] Live validation output shows `mcp` and `splunk_mcp`.
-- [ ] Live validation output shows `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_knowledge_objects`, and `splunk_run_query`.
-- [ ] Live validation output shows those tool calls with `transport=mcp`, not just MCP-like tool names.
-- [ ] First viewport in the recording shows `Splunk MCP live`, `mcp`, `splunk_mcp`, `NiNa`, `4/4 observed`, and evidence items.
+- [x] Splunk MCP Server is installed and configured locally.
+- [x] Live validation output shows `mcp` and `splunk_mcp`.
+- [x] Live validation output shows `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_knowledge_objects`, and `splunk_run_query`.
+- [x] Live validation output shows those tool calls with `transport=mcp`, not just MCP-like tool names.
+- [x] First viewport in the local proof run shows `Splunk MCP live`, `mcp`, `splunk_mcp`, `NiNa`, `4/4 observed`, and evidence items.
 - [ ] Demo video is public and under 3 minutes.
 - [ ] Demo video shows the project working against live Splunk, not `sample` mode.
 - [ ] Demo video explains evidence-gated AI.
