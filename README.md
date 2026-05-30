@@ -57,7 +57,7 @@ architecture_diagram.md   Root-level architecture diagram for Devpost
    Copy-Item .env.example .env
    ```
 
-   The backend loads `.env` automatically. Set a local `SPLUNK_PASSWORD` in `.env` before starting Splunk.
+   The backend loads `.env` automatically. Set a local `SPLUNK_PASSWORD` in `.env` before starting Splunk. The template defaults to `BREACHLENS_MODE=rest` so the app uses live data from the local Splunk container.
 
 2. Start local Splunk Enterprise.
 
@@ -67,7 +67,21 @@ architecture_diagram.md   Root-level architecture diagram for Devpost
 
 3. Open Splunk at `http://127.0.0.1:18000` and log in as `admin` with `SPLUNK_PASSWORD` from `.env`.
 
-4. Install Splunk MCP Server from Splunkbase, enable `mcp_tool_execute` for the demo role, generate an encrypted MCP token, and set:
+4. Verify Splunk has indexed the live demo data.
+
+   ```powershell
+   cd backend
+   @'
+   from app.config import load_settings
+   from app.splunk_client import make_splunk_client
+
+   client = make_splunk_client(load_settings())
+   print(client.name)
+   print(client.run_query("search index=breachlens | stats count by sourcetype", earliest="0"))
+   '@ | .\.venv\Scripts\python.exe -
+   ```
+
+5. For the final MCP demo, install Splunk MCP Server from Splunkbase, enable `mcp_tool_execute` for the demo role, generate an encrypted MCP token, and set:
 
    ```text
    BREACHLENS_MODE=mcp
@@ -77,7 +91,7 @@ architecture_diagram.md   Root-level architecture diagram for Devpost
 
    Optional: set `OLLAMA_BASE_URL` or `OPENAI_COMPATIBLE_BASE_URL` plus `OPENAI_API_KEY` to show a live evidence-gated AI analyst note. Without a model provider, BreachLens uses deterministic fallback reasoning and clearly labels it in the UI.
 
-5. Run the backend.
+6. Run the backend.
 
    ```powershell
    cd backend
@@ -87,7 +101,7 @@ architecture_diagram.md   Root-level architecture diagram for Devpost
    .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8080
    ```
 
-6. Run the frontend.
+7. Run the frontend.
 
    ```powershell
    cd frontend
@@ -95,11 +109,11 @@ architecture_diagram.md   Root-level architecture diagram for Devpost
    npm run dev
    ```
 
-7. Open `http://localhost:5173`.
+8. Open `http://localhost:5173`.
 
 ## Demo Without Splunk
 
-Set `BREACHLENS_MODE=sample` to run the API against `sample_data/`. This is useful for frontend and agent development. The hackathon demo should use MCP mode so the Splunk MCP Server integration is visible.
+Set `BREACHLENS_MODE=sample` to run the API against `sample_data/` without Splunk. This is useful for frontend and agent development only. The normal local demo should use `rest` for live Splunk data, and the hackathon recording should use `mcp` so the Splunk MCP Server integration is visible.
 
 ## MCP Demo Validation
 

@@ -173,6 +173,7 @@ function App() {
     [investigation]
   );
   const isMcpLive = health?.mode === "mcp" && health?.splunk_client === "splunk_mcp";
+  const isSplunkLive = health?.splunk_client === "splunk_mcp" || health?.splunk_client === "splunk_rest";
   const liveObservedMcpTools = useMemo(
     () => (isMcpLive ? observedMcpTools : new Set<string>()),
     [isMcpLive, observedMcpTools]
@@ -410,7 +411,8 @@ function App() {
         )}
 
         <ProofStrip
-          live={isMcpLive}
+          mcpLive={isMcpLive}
+          splunkLive={isSplunkLive}
           mode={health?.mode ?? "unknown"}
           client={health?.splunk_client ?? "api offline"}
           aiProvider={aiProvider}
@@ -650,7 +652,8 @@ function App() {
 }
 
 function ProofStrip({
-  live,
+  mcpLive,
+  splunkLive,
   mode,
   client,
   aiProvider,
@@ -660,7 +663,8 @@ function ProofStrip({
   observedMcpToolCount,
   evidenceCount
 }: {
-  live: boolean;
+  mcpLive: boolean;
+  splunkLive: boolean;
   mode: string;
   client: string;
   aiProvider: string;
@@ -670,11 +674,12 @@ function ProofStrip({
   observedMcpToolCount: number;
   evidenceCount: number;
 }) {
+  const statusLabel = mcpLive ? "Splunk MCP live" : splunkLive ? "Splunk REST live" : "MCP not live";
   return (
-    <section className={`proof-strip ${live ? "live" : "not-live"}`} aria-label="Live MCP proof strip">
+    <section className={`proof-strip ${mcpLive ? "live" : splunkLive ? "splunk-live" : "not-live"}`} aria-label="Live MCP proof strip">
       <article className="proof-card proof-card-primary">
         <span className="proof-kicker">Splunk MCP</span>
-        <strong>{live ? "Splunk MCP live" : "MCP not live"}</strong>
+        <strong>{statusLabel}</strong>
         <div className="proof-inline" aria-label="MCP runtime and client">
           <span>{mode}</span>
           <span>{client}</span>
@@ -705,7 +710,7 @@ function ProofStrip({
       <article className="proof-card">
         <span className="proof-kicker">Evidence Items</span>
         <strong>{evidenceCount ? `${evidenceCount} items` : "pending"}</strong>
-        <small>{live ? "Splunk-backed artifacts" : "sample artifacts"}</small>
+        <small>{splunkLive ? "Splunk-backed artifacts" : "sample artifacts"}</small>
       </article>
     </section>
   );

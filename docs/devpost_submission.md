@@ -40,8 +40,8 @@ The key idea is evidence-gated AI: model output is allowed to summarize and prio
 - `apps/breachlens_splunk/` defines the Splunk app, `breachlens` index, sourcetypes, inputs, saved searches, macros, and dashboard.
 - `sample_data/` contains synthetic auth, cloud, EDR, proxy, and alert JSONL events.
 - The backend supports three clients:
-  - `mcp`: Splunk MCP Server tool calls for the final hackathon demo.
-  - `rest`: Splunk REST API fallback.
+  - `rest`: local Splunk live-data mode for ordinary demo validation.
+  - `mcp`: Splunk MCP Server tool calls for the final hackathon demo and bonus proof.
   - `sample`: local sample-data development mode.
 - The investigation transcript records every Splunk tool call and SPL query so judges can verify the data path.
 
@@ -67,7 +67,7 @@ High-level flow:
 
 ## Local Demo Commands
 
-Start Splunk:
+Start Splunk and use live local data:
 
 ```powershell
 Copy-Item .env.example .env
@@ -93,7 +93,21 @@ npm install --ignore-scripts
 npm run dev
 ```
 
-Validate live MCP proof:
+Validate live Splunk data through the backend:
+
+```powershell
+cd backend
+@'
+from app.config import load_settings
+from app.splunk_client import make_splunk_client
+
+client = make_splunk_client(load_settings())
+print(client.name)
+print(client.run_query("search index=breachlens | stats count by sourcetype", earliest="0"))
+'@ | .\.venv\Scripts\python.exe -
+```
+
+Validate final live MCP proof:
 
 ```powershell
 cd frontend

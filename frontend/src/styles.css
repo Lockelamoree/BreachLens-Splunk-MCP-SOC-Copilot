@@ -400,6 +400,12 @@ h4 {
   border-left-color: var(--ok);
 }
 
+.proof-strip.splunk-live .proof-card-primary {
+  background: #101308;
+  border-color: #5d4b13;
+  border-left-color: var(--amber);
+}
+
 .proof-kicker {
   display: block;
   color: var(--muted);
@@ -459,6 +465,10 @@ h4 {
 
 .proof-strip.live .proof-inline span {
   border-left-color: var(--ok);
+}
+
+.proof-strip.splunk-live .proof-inline span {
+  border-left-color: var(--amber);
 }
 
 .proof-tools {
