@@ -18,6 +18,10 @@ Security
 
 Best Use of Splunk MCP Server
 
+## Demo Video
+
+[BreachLens - Splunk MCP SOC Copilot with Evidence-Gated AI](https://youtu.be/FM6DZyjPXbs)
+
 ## Short Description
 
 I built BreachLens to answer a practical SOC question: can an AI-assisted workflow speed up triage without making unsupported claims?
@@ -134,7 +138,7 @@ npm run test:live
 | Design | A SOC console built around the investigation workflow: proof strip, alert queue, impact meter, timeline, evidence drawer, SPL transcript, and detections. |
 | Potential impact | The app compresses a multi-pivot investigation into a reusable evidence package with response guidance. |
 | Quality of idea | The differentiator is evidence-gated AI, not just chat over logs. |
-| Splunk MCP bonus | Final demo mode must use `splunk_mcp` and show all required MCP tool calls with `transport=mcp` in the transcript. |
+| Splunk MCP bonus | The demo uses `splunk_mcp` and shows the required MCP tool calls with `transport=mcp` in the transcript. |
 
 ## Recording Checklist
 

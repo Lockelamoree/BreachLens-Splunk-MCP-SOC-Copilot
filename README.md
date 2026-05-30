@@ -35,6 +35,7 @@ That is the whole point: useful AI, but with guardrails an analyst can audit.
 
 - **Track:** Security
 - **Bonus target:** Best Use of Splunk MCP Server
+- **Demo video:** [BreachLens - Splunk MCP SOC Copilot with Evidence-Gated AI](https://youtu.be/FM6DZyjPXbs)
 - **AI model used in my demo:** NiNa through local Ollama, with the model link shown in the UI: [LockeLamora2077/NiNa](https://huggingface.co/LockeLamora2077/NiNa)
 - **What judges should look for:** the first-viewport proof strip, SPL transcript, evidence drawer, Splunk source links, ledger/report exports, and generated detections.
 

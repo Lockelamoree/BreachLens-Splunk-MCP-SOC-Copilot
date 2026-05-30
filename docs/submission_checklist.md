@@ -18,7 +18,7 @@ This is my own last-pass checklist before Devpost. No magic, no "we will fix it 
 - [x] Live validation output shows `splunk_get_indexes`, `splunk_get_metadata`, `splunk_get_knowledge_objects`, and `splunk_run_query`.
 - [x] Live validation output shows those tool calls with `transport=mcp`, not just MCP-like tool names.
 - [x] First viewport in the local proof run shows `Splunk MCP live`, `mcp`, `splunk_mcp`, `NiNa`, `4/4 observed`, and evidence items.
-- [ ] Demo video is public and under 3 minutes.
-- [ ] Demo video shows the project working against live Splunk, not `sample` mode.
-- [ ] Demo video explains evidence-gated AI.
-- [ ] Devpost text links the architecture, README, and video story to the judging criteria.
+- [x] Demo video is public and under 3 minutes: https://youtu.be/FM6DZyjPXbs
+- [x] Demo video shows the project working against live Splunk, not `sample` mode.
+- [x] Demo video explains evidence-gated AI.
+- [x] Devpost text links the architecture, README, and video story to the judging criteria.
