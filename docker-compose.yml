@@ -1,0 +1,24 @@
+services:
+  splunk:
+    image: splunk/splunk:10.0
+    container_name: breachlens-splunk
+    environment:
+      SPLUNK_START_ARGS: --accept-license
+      SPLUNK_GENERAL_TERMS: --accept-sgt-current-at-splunk-com
+      SPLUNK_PASSWORD: ${SPLUNK_PASSWORD:?Set SPLUNK_PASSWORD in .env before starting Splunk}
+    ports:
+      - "18000:8000"
+      - "18088:8088"
+      - "18089:8089"
+    volumes:
+      - ./apps/breachlens_splunk:/opt/splunk/etc/apps/breachlens_splunk
+      - ./sample_data:/opt/splunk/etc/apps/breachlens_splunk/sample_data
+      - splunk-var:/opt/splunk/var
+    healthcheck:
+      test: ["CMD", "/opt/splunk/bin/splunk", "status", "--accept-license", "--answer-yes"]
+      interval: 30s
+      timeout: 15s
+      retries: 20
+
+volumes:
+  splunk-var:

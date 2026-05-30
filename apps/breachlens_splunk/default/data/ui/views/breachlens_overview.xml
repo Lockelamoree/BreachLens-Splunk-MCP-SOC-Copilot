@@ -1,0 +1,48 @@
+<form version="1.1" theme="dark">
+  <label>BreachLens Overview</label>
+  <fieldset submitButton="false">
+    <input type="time" token="time_range">
+      <label>Time</label>
+      <default>
+        <earliest>-24h@h</earliest>
+        <latest>now</latest>
+      </default>
+    </input>
+  </fieldset>
+  <row>
+    <panel>
+      <title>Open Alerts</title>
+      <table>
+        <search>
+          <query>`breachlens_index` sourcetype=breachlens:alert | sort -severity_score | table _time alert_id severity severity_score title user host src_ip status</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+  <row>
+    <panel>
+      <title>Identity Attack Surface</title>
+      <chart>
+        <search>
+          <query>`breachlens_index` sourcetype=breachlens:auth | stats count by action country | sort -count</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+        <option name="charting.chart">column</option>
+      </chart>
+    </panel>
+    <panel>
+      <title>Endpoint and Exfil Signals</title>
+      <table>
+        <search>
+          <query>`breachlens_index` (sourcetype=breachlens:edr OR sourcetype=breachlens:proxy) | table _time sourcetype host user action process dest_domain bytes_out risk | sort _time</query>
+          <earliest>$time_range.earliest$</earliest>
+          <latest>$time_range.latest$</latest>
+        </search>
+      </table>
+    </panel>
+  </row>
+</form>
+
